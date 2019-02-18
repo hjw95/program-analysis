@@ -4,9 +4,3 @@ clang-7 -emit-llvm -S -o llvm/test1.ll target/test1.c
 clang-7 -emit-llvm -c -o llvm/test1.bc target/test1.c
 
 ./binary/RandomPath llvm/test1.ll
-
-opt-7 -dot-cfg llvm/test1.ll
-mv cfg.main.dot graph/test1.dot
-
-cd graph
-./allfigs2pdf

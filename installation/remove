@@ -1,0 +1,4 @@
+#!/bin/bash
+
+sudo apt-get remove -y libllvm7 llvm-7 llvm-7-dev llvm-7-doc llvm-7-runtime lldb-7 lld-7 clang-7 clang-tools-7 clang-7-doc libclang-common-7-dev libclang-7-dev libclang1-7 clang-format-7 python-clang-7 libc++-dev libc++abi-dev
+sudo apt-get autoremove -y
