@@ -1,0 +1,4 @@
+clang++-3.5  -o RandomPath RandomPath.cpp `llvm-config-3.5 --cxxflags` `llvm-config-3.5 --ldflags` `llvm-config-3.5 --libs` -lpthread -lncurses -ldl
+
+
+clang++-7 -o RandomPath RandomPath.cpp `llvm-config-7 --cxxflags` `llvm-config-7 --ldflags` `llvm-config-7 --libs` -lpthread -lncurses -ldl

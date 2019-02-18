@@ -1,0 +1,20 @@
+#!/bin/bash
+
+clang-7 -emit-llvm -S -o llvm/test1.ll target/test1.c
+opt-7 -dot-cfg llvm/test1.ll
+mv cfg.main.dot graph/test1.dot
+
+clang-7 -emit-llvm -S -o llvm/test2.ll target/test2.c
+opt-7 -dot-cfg llvm/test2.ll
+mv cfg.main.dot graph/test2.dot
+
+clang-7 -emit-llvm -S -o llvm/test3.ll target/test3.c
+opt-7 -dot-cfg llvm/test3.ll
+mv cfg.main.dot graph/test3.dot
+
+clang-7 -emit-llvm -S -o llvm/test4.ll target/test4.c
+opt-7 -dot-cfg llvm/test4.ll
+mv cfg.main.dot graph/test4.dot
+
+cd graph
+./allfigs2pdf
