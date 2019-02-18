@@ -1,0 +1,16 @@
+#!/bin/bash
+
+opt-7 -dot-cfg llvms/test1.ll
+mv cfg.main.dot graphs/test1.dot
+
+opt-7 -dot-cfg llvms/test2.ll
+mv cfg.main.dot graphs/test2.dot
+
+opt-7 -dot-cfg llvms/test3.ll
+mv cfg.main.dot graphs/test3.dot
+
+opt-7 -dot-cfg llvms/test4.ll
+mv cfg.main.dot graphs/test4.dot
+
+cd graphs
+./allfigs2pdf

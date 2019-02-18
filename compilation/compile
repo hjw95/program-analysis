@@ -1,0 +1,10 @@
+#!/bin/bash
+
+#echo "Compile Random Path 1"
+#clang++-7 -o binary/RandomPath tutorial/RandomPath.cpp `llvm-config-7 --cxxflags` `llvm-config-7 --ldflags` `llvm-config-7 --libs` -lpthread -lncurses -ldl -Wno-unknown-warning-option
+
+#echo "Compile Stack Set"
+#clang++-7 -o binary/StackSet tutorial/StackSet.cpp `llvm-config-7 --cxxflags` `llvm-config-7 --ldflags` `llvm-config-7 --libs` -lpthread -lncurses -ldl -Wno-unknown-warning-option
+
+echo "Compile Assignment 1 Task 2"
+clang++-7 -o binary/assignment1-task2 assignment1/task2.cpp `llvm-config-7 --cxxflags` `llvm-config-7 --ldflags` `llvm-config-7 --libs` -lpthread -lncurses -ldl -Wno-unknown-warning-option

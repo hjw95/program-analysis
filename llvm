@@ -1,0 +1,6 @@
+#!/bin/bash
+
+clang-7 -emit-llvm -S -o llvms/test1.ll target/test1.c
+clang-7 -emit-llvm -S -o llvms/test2.ll target/test2.c
+clang-7 -emit-llvm -S -o llvms/test3.ll target/test3.c
+clang-7 -emit-llvm -S -o llvms/test4.ll target/test4.c
