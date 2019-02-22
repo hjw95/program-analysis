@@ -5,3 +5,4 @@ clang-7 -emit-llvm -S -o llvms/test2.ll target/test2.c
 clang-7 -emit-llvm -S -o llvms/test3.ll target/test3.c
 clang-7 -emit-llvm -S -o llvms/test4.ll target/test4.c
 clang-7 -emit-llvm -S -o llvms/assignment1-test.ll target/assignment1-test.c
+clang-7 -emit-llvm -S -o llvms/assignment1-test2.ll target/assignment1-test2.c
