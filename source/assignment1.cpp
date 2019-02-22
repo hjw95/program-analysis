@@ -111,7 +111,6 @@ void traverse(BasicBlock *BB, set<Instruction *> parentSet)
     for (unsigned i = 0; i < NSucc; i++)
     {
         BasicBlock *Succ = TInst->getSuccessor(i);
-        print(Succ);
         traverse(Succ, affectingInstruction);
     }
 }
