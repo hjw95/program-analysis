@@ -48,13 +48,11 @@ int main(int argc, char **argv)
         if (strncmp(F.getName().str().c_str(), "main", 4) == 0)
         {
             BasicBlock *BB = dyn_cast<BasicBlock>(F.begin());
-            print(BB);
             set<Instruction *> emptySet;
             traverse(BB, emptySet);
         }
     }
 
-    outs() << "Final Analysis: \n";
     print(analysisMap);
 
     return 0;
