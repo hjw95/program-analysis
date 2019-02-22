@@ -19,7 +19,7 @@
 using namespace llvm;
 using namespace std;
 
-void traverse(BasicBlock *BB, set<Instruction *> parentSet);
+void traverse(BasicBlock *BB, set<Instruction *> entrySet);
 void print(const Value *bb);
 void print(const Instruction *bb);
 void print(const BasicBlock *bb);
@@ -58,27 +58,23 @@ int main(int argc, char **argv)
     return 0;
 }
 
-void traverse(BasicBlock *BB, set<Instruction *> parentSet)
+void traverse(BasicBlock *BB, set<Instruction *> entrySet)
 {
     const TerminatorInst *TInst = BB->getTerminator();
     unsigned NSucc = TInst->getNumSuccessors();
 
-    set<Instruction *> affectingInstruction;
+    set<Instruction *> exitSet;
 
     unsigned originalCount = 0;
     bool traversed = false;
 
-    for (auto &I : parentSet)
-    {
-        affectingInstruction.insert(I);
-    }
+    // Union of entry set
+    exitSet.insert(entrySet.begin(), entrySet.end());
 
     if (analysisMap.count(getSimpleNodeLabel(BB)) > 0)
     {
-        for (auto &I : analysisMap[getSimpleNodeLabel(BB)])
-        {
-            affectingInstruction.insert(I);
-        }
+        // Union of previous iteration
+        exitSet.insert(analysisMap[getSimpleNodeLabel(BB)].begin(), analysisMap[getSimpleNodeLabel(BB)].end());
         originalCount = analysisMap[getSimpleNodeLabel(BB)].size();
         traversed = true;
     }
@@ -89,18 +85,18 @@ void traverse(BasicBlock *BB, set<Instruction *> parentSet)
         {
             Value *v = I.getOperand(1);
             Instruction *var = dyn_cast<Instruction>(v);
-            affectingInstruction.insert(var);
+            exitSet.insert(var);
         }
     }
 
-    analysisMap[getSimpleNodeLabel(BB)] = affectingInstruction;
+    analysisMap[getSimpleNodeLabel(BB)] = exitSet;
 
     if (NSucc == 0)
     {
         return;
     }
 
-    unsigned finalCount = affectingInstruction.size();
+    unsigned finalCount = exitSet.size();
 
     if (traversed && originalCount == finalCount)
     {
@@ -110,7 +106,7 @@ void traverse(BasicBlock *BB, set<Instruction *> parentSet)
     for (unsigned i = 0; i < NSucc; i++)
     {
         BasicBlock *Succ = TInst->getSuccessor(i);
-        traverse(Succ, affectingInstruction);
+        traverse(Succ, exitSet);
     }
 }
 
