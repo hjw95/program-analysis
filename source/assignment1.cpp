@@ -104,7 +104,6 @@ void traverse(BasicBlock *BB, set<Instruction *> parentSet)
 
     if (traversed && originalCount == finalCount)
     {
-        cout << "This shouldn't happen yet\n";
         return;
     }
 
