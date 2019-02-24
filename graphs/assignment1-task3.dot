@@ -1,19 +1,19 @@
 digraph "CFG for 'main' function" {
 	label="CFG for 'main' function";
 
-	Node0x55def011b920 [shape=record,label="{%0:\l  %1 = alloca i32, align 4\l  %2 = alloca i32, align 4\l  %3 = alloca i32, align 4\l  %4 = alloca i32, align 4\l  %5 = alloca i32, align 4\l  %6 = alloca i32, align 4\l  %7 = alloca i32, align 4\l  %8 = alloca i32, align 4\l  store i32 0, i32* %1, align 4\l  store i32 5, i32* %3, align 4\l  store i32 0, i32* %8, align 4\l  br label %9\l}"];
-	Node0x55def011b920 -> Node0x55def011c1c0;
-	Node0x55def011c1c0 [shape=record,label="{%9:\l\l  %10 = load i32, i32* %8, align 4\l  %11 = icmp slt i32 %10, 10\l  br i1 %11, label %12, label %22\l|{<s0>T|<s1>F}}"];
-	Node0x55def011c1c0:s0 -> Node0x55def011c6a0;
-	Node0x55def011c1c0:s1 -> Node0x55def011c6f0;
-	Node0x55def011c6a0 [shape=record,label="{%12:\l\l  %13 = load i32, i32* %8, align 4\l  %14 = srem i32 %13, 2\l  %15 = icmp eq i32 %14, 0\l  br i1 %15, label %16, label %17\l|{<s0>T|<s1>F}}"];
-	Node0x55def011c6a0:s0 -> Node0x55def011c8f0;
-	Node0x55def011c6a0:s1 -> Node0x55def011c940;
-	Node0x55def011c8f0 [shape=record,label="{%16:\l\l  store i32 -1, i32* %7, align 4\l  br label %19\l}"];
-	Node0x55def011c8f0 -> Node0x55def011ca80;
-	Node0x55def011c940 [shape=record,label="{%17:\l\l  %18 = load i32, i32* %3, align 4\l  store i32 %18, i32* %4, align 4\l  br label %19\l}"];
-	Node0x55def011c940 -> Node0x55def011ca80;
-	Node0x55def011ca80 [shape=record,label="{%19:\l\l  %20 = load i32, i32* %8, align 4\l  %21 = add nsw i32 %20, 1\l  store i32 %21, i32* %8, align 4\l  br label %9\l}"];
-	Node0x55def011ca80 -> Node0x55def011c1c0;
-	Node0x55def011c6f0 [shape=record,label="{%22:\l\l  %23 = load i32, i32* %5, align 4\l  store i32 %23, i32* %6, align 4\l  %24 = load i32, i32* %1, align 4\l  ret i32 %24\l}"];
+	Node0x5608c8dda920 [shape=record,label="{%0:\l  %1 = alloca i32, align 4\l  %2 = alloca i32, align 4\l  %3 = alloca i32, align 4\l  %4 = alloca i32, align 4\l  %5 = alloca i32, align 4\l  %6 = alloca i32, align 4\l  %7 = alloca i32, align 4\l  %8 = alloca i32, align 4\l  store i32 0, i32* %1, align 4\l  store i32 5, i32* %3, align 4\l  store i32 0, i32* %8, align 4\l  br label %9\l}"];
+	Node0x5608c8dda920 -> Node0x5608c8ddb1c0;
+	Node0x5608c8ddb1c0 [shape=record,label="{%9:\l\l  %10 = load i32, i32* %8, align 4\l  %11 = icmp slt i32 %10, 10\l  br i1 %11, label %12, label %22\l|{<s0>T|<s1>F}}"];
+	Node0x5608c8ddb1c0:s0 -> Node0x5608c8ddb6a0;
+	Node0x5608c8ddb1c0:s1 -> Node0x5608c8ddb6f0;
+	Node0x5608c8ddb6a0 [shape=record,label="{%12:\l\l  %13 = load i32, i32* %8, align 4\l  %14 = srem i32 %13, 2\l  %15 = icmp eq i32 %14, 0\l  br i1 %15, label %16, label %17\l|{<s0>T|<s1>F}}"];
+	Node0x5608c8ddb6a0:s0 -> Node0x5608c8ddb8f0;
+	Node0x5608c8ddb6a0:s1 -> Node0x5608c8ddb940;
+	Node0x5608c8ddb8f0 [shape=record,label="{%16:\l\l  store i32 -1, i32* %7, align 4\l  br label %19\l}"];
+	Node0x5608c8ddb8f0 -> Node0x5608c8ddba80;
+	Node0x5608c8ddb940 [shape=record,label="{%17:\l\l  %18 = load i32, i32* %3, align 4\l  store i32 %18, i32* %4, align 4\l  br label %19\l}"];
+	Node0x5608c8ddb940 -> Node0x5608c8ddba80;
+	Node0x5608c8ddba80 [shape=record,label="{%19:\l\l  %20 = load i32, i32* %8, align 4\l  %21 = add nsw i32 %20, 1\l  store i32 %21, i32* %8, align 4\l  br label %9\l}"];
+	Node0x5608c8ddba80 -> Node0x5608c8ddb1c0;
+	Node0x5608c8ddb6f0 [shape=record,label="{%22:\l\l  %23 = load i32, i32* %5, align 4\l  store i32 %23, i32* %6, align 4\l  %24 = load i32, i32* %1, align 4\l  ret i32 %24\l}"];
 }
