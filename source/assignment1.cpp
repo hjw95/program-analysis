@@ -20,13 +20,14 @@ using namespace llvm;
 using namespace std;
 
 void traverse(BasicBlock *BB, set<Instruction *> entrySet);
+
+set<Instruction *> generate(BasicBlock *bb);
+set<Instruction *> combine(set<Instruction *> entry, set<Instruction *> generate, set<Instruction *> previous);
+
 void print(const Value *bb);
-void print(const Instruction *bb);
-void print(const BasicBlock *bb);
 void print(const map<string, set<Instruction *>> analysisMap);
 
-string getSimpleNodeLabel(const BasicBlock *Node);
-string getSimpleNodeLabel(const Instruction *Node);
+string label(const Value *Node);
 
 map<string, set<Instruction *>> analysisMap;
 
@@ -58,38 +59,63 @@ int main(int argc, char **argv)
     return 0;
 }
 
-void traverse(BasicBlock *BB, set<Instruction *> entrySet)
+set<Instruction *> generate(BasicBlock *bb)
 {
-    const TerminatorInst *TInst = BB->getTerminator();
-    unsigned NSucc = TInst->getNumSuccessors();
+    set<Instruction *> generate;
 
-    set<Instruction *> exitSet;
-
-    unsigned originalCount = 0;
-    bool traversed = false;
-
-    // Union of entry set
-    exitSet.insert(entrySet.begin(), entrySet.end());
-
-    if (analysisMap.count(getSimpleNodeLabel(BB)) > 0)
-    {
-        // Union of previous iteration
-        exitSet.insert(analysisMap[getSimpleNodeLabel(BB)].begin(), analysisMap[getSimpleNodeLabel(BB)].end());
-        originalCount = analysisMap[getSimpleNodeLabel(BB)].size();
-        traversed = true;
-    }
-
-    for (auto &I : *BB)
+    for (auto &I : *bb)
     {
         if (isa<StoreInst>(I))
         {
             Value *v = I.getOperand(1);
             Instruction *var = dyn_cast<Instruction>(v);
-            exitSet.insert(var);
+            if (label(var).compare("retval") != 0)
+            {
+                generate.insert(var);
+            }
         }
     }
 
-    analysisMap[getSimpleNodeLabel(BB)] = exitSet;
+    return generate;
+}
+
+set<Instruction *> combine(set<Instruction *> entry, set<Instruction *> generate, set<Instruction *> previous)
+{
+    set<Instruction *> combined;
+
+    combined.insert(entry.begin(), entry.end());
+    combined.insert(generate.begin(), generate.end());
+    combined.insert(previous.begin(), previous.end());
+
+    return combined;
+}
+
+void traverse(BasicBlock *BB, set<Instruction *> entrySet)
+{
+    const TerminatorInst *TInst = BB->getTerminator();
+    unsigned NSucc = TInst->getNumSuccessors();
+
+    unsigned originalCount = 0;
+    bool traversed = false;
+
+    string bblabel = label(BB);
+
+    if (analysisMap.count(bblabel) == 0)
+    {
+        // Initialize
+        set<Instruction *> empty;
+        analysisMap[bblabel] = empty;
+    }
+    else
+    {
+        originalCount = analysisMap[bblabel].size();
+        traversed = true;
+    }
+
+    set<Instruction *> generated = generate(BB);
+    set<Instruction *> exitSet = combine(entrySet, generated, analysisMap[bblabel]);
+
+    analysisMap[bblabel] = exitSet;
 
     if (NSucc == 0)
     {
@@ -117,49 +143,27 @@ void print(const map<string, set<Instruction *>> analysisMap)
         set<Instruction *> initializedVars = row.second;
         string BBLabel = row.first;
 
-        outs() << BBLabel << ":\n";
+        outs() << BBLabel << "\t: {";
+        bool first = true;
         for (Instruction *var : initializedVars)
         {
-            outs() << "\t";
-            print(var);
+            if (!first)
+            {
+                outs() << ", ";
+            }
+            outs() << label(var);
+            first = false;
         }
+        outs() << "} \n";
     }
-}
-
-void print(const BasicBlock *bb)
-{
-    outs() << "Label:" << getSimpleNodeLabel(bb) << "\n";
-    // bb->print(llvm::errs(), false);
-}
-
-void print(const Instruction *bb)
-{
-    outs() << "Instruction : ";
-    // outs() << "Label:" << getSimpleNodeLabel(bb) << "\n";
-    bb->print(llvm::errs(), false);
-    outs() << "\n";
 }
 
 void print(const Value *bb)
 {
-    outs() << "Value : ";
-    // outs() << "Label:" << getSimpleNodeLabel(bb) << "\n";
-    bb->print(llvm::errs(), false);
-    outs() << "\n";
+    outs() << "Label:" << label(bb) << "\n";
 }
 
-string getSimpleNodeLabel(const BasicBlock *Node)
-{
-    if (!Node->getName().empty())
-        return Node->getName().str();
-
-    string Str;
-    raw_string_ostream OS(Str);
-    Node->printAsOperand(OS, false);
-    return OS.str();
-}
-
-string getSimpleNodeLabel(const Instruction *Node)
+string label(const Value *Node)
 {
     if (!Node->getName().empty())
         return Node->getName().str();
