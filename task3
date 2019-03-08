@@ -1,3 +1,3 @@
 #!/bin/bash
 
-./bin/assignment2 llvms/assignment1-task3.ll
+./bin/assignment2 llvms/assignment2-example3.ll

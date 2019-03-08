@@ -19,17 +19,17 @@
 using namespace llvm;
 using namespace std;
 
-void traverse(BasicBlock *BB, set<Instruction *> entrySet);
+void traverse(BasicBlock *BB, set<string> entrySet);
 
-set<Instruction *> generate(BasicBlock *bb);
-set<Instruction *> combine(set<Instruction *> entry, set<Instruction *> generate, set<Instruction *> previous);
+set<string> generate(BasicBlock *bb, set<string> previous);
+set<string> combine(set<string> entry, set<string> generate, set<string> previous);
 
 void print(const Value *bb);
-void print(const map<string, set<Instruction *>> analysisMap);
+void print(const map<string, set<string>> analysisMap);
 
 string label(const Value *Node);
 
-map<string, set<Instruction *>> analysisMap;
+map<string, set<string>> analysisMap;
 
 int main(int argc, char **argv)
 {
@@ -49,7 +49,7 @@ int main(int argc, char **argv)
         if (strncmp(F.getName().str().c_str(), "main", 4) == 0)
         {
             BasicBlock *BB = dyn_cast<BasicBlock>(F.begin());
-            set<Instruction *> emptySet;
+            set<string> emptySet;
             traverse(BB, emptySet);
         }
     }
@@ -59,38 +59,68 @@ int main(int argc, char **argv)
     return 0;
 }
 
-set<Instruction *> generate(BasicBlock *bb)
+void printOperand(Instruction &I)
 {
-    set<Instruction *> generate;
+    print(I.getOperand(0));
+    print(I.getOperand(1));
+    print(I.getOperand(2));
+    print(I.getOperand(3));
+}
+
+set<string> generate(BasicBlock *bb, set<string> entry)
+{
+    set<string> generate;
+
+    set<string> sinks;
+
+    generate.insert("source");
+    generate.insert(entry.begin(), entry.end());
+
+    sinks.insert("source");
+    sinks.insert(entry.begin(), entry.end());
 
     for (auto &I : *bb)
     {
         if (isa<StoreInst>(I))
         {
-            Value *v = I.getOperand(1);
-            Instruction *var = dyn_cast<Instruction>(v);
-            if (label(var).compare("retval") != 0)
+            Value *sink = I.getOperand(1);
+            Value *source = I.getOperand(0);
+
+            if (sinks.count(label(source)) > 0)
             {
-                generate.insert(var);
+                generate.insert(label(sink));
+                sinks.insert(label(sink));
             }
         }
+        else if (isa<LoadInst>(I))
+        {
+            Value *source = I.getOperand(0);
+            if (sinks.count(label(source)) > 0)
+            {
+                sinks.insert(label(&I));
+            }
+        }
+    }
+
+    for (string s : sinks)
+    {
+        outs() << s << "\n";
     }
 
     return generate;
 }
 
-set<Instruction *> combine(set<Instruction *> entry, set<Instruction *> generate, set<Instruction *> previous)
+set<string> combine(set<string> entry, set<string> generate)
 {
-    set<Instruction *> combined;
+    set<string> combined;
 
     combined.insert(entry.begin(), entry.end());
     combined.insert(generate.begin(), generate.end());
-    combined.insert(previous.begin(), previous.end());
 
     return combined;
 }
 
-void traverse(BasicBlock *BB, set<Instruction *> entrySet)
+void traverse(BasicBlock *BB, set<string> entrySet)
 {
     const TerminatorInst *TInst = BB->getTerminator();
     unsigned NSucc = TInst->getNumSuccessors();
@@ -103,7 +133,7 @@ void traverse(BasicBlock *BB, set<Instruction *> entrySet)
     if (analysisMap.count(bblabel) == 0)
     {
         // Initialize
-        set<Instruction *> empty;
+        set<string> empty;
         analysisMap[bblabel] = empty;
     }
     else
@@ -112,8 +142,8 @@ void traverse(BasicBlock *BB, set<Instruction *> entrySet)
         traversed = true;
     }
 
-    set<Instruction *> generated = generate(BB);
-    set<Instruction *> exitSet = combine(entrySet, generated, analysisMap[bblabel]);
+    set<string> generated = generate(BB, entrySet);
+    set<string> exitSet = combine(analysisMap[bblabel], generated);
 
     analysisMap[bblabel] = exitSet;
 
@@ -136,22 +166,21 @@ void traverse(BasicBlock *BB, set<Instruction *> entrySet)
     }
 }
 
-void print(const map<string, set<Instruction *>> analysisMap)
+void print(const map<string, set<string>> analysisMap)
 {
     for (auto &row : analysisMap)
     {
-        set<Instruction *> initializedVars = row.second;
         string BBLabel = row.first;
 
         outs() << BBLabel << "\t: {";
         bool first = true;
-        for (Instruction *var : initializedVars)
+        for (string var : row.second)
         {
             if (!first)
             {
                 outs() << ", ";
             }
-            outs() << label(var);
+            outs() << var;
             first = false;
         }
         outs() << "} \n";
@@ -160,7 +189,9 @@ void print(const map<string, set<Instruction *>> analysisMap)
 
 void print(const Value *bb)
 {
-    outs() << "Label:" << label(bb) << "\n";
+    outs() << "Instruction:";
+    bb->print(outs());
+    outs() << "\n";
 }
 
 string label(const Value *Node)

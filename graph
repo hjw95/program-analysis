@@ -24,5 +24,8 @@ mv cfg.main.dot graphs/assignment2-example1.dot
 opt-7 -dot-cfg llvms/assignment2-example2.ll
 mv cfg.main.dot graphs/assignment2-example2.dot
 
+opt-7 -dot-cfg llvms/assignment2-example3.ll
+mv cfg.main.dot graphs/assignment2-example3.dot
+
 cd graphs
 ./allfigs2pdf
