@@ -1,3 +1,5 @@
 #!/bin/bash
 
 clang++-7 -o bin/assignment1 source/assignment1.cpp `llvm-config-7 --cxxflags` `llvm-config-7 --ldflags` `llvm-config-7 --libs` -lpthread -lncurses -ldl -Wno-unknown-warning-option
+
+clang++-7 -o bin/assignment2 source/assignment2.cpp `llvm-config-7 --cxxflags` `llvm-config-7 --ldflags` `llvm-config-7 --libs` -lpthread -lncurses -ldl -Wno-unknown-warning-option
