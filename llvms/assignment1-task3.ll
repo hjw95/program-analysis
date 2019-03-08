@@ -5,50 +5,51 @@ target triple = "x86_64-pc-linux-gnu"
 
 ; Function Attrs: noinline nounwind optnone uwtable
 define dso_local i32 @main() #0 {
-  %1 = alloca i32, align 4
-  %2 = alloca i32, align 4
-  %3 = alloca i32, align 4
-  %4 = alloca i32, align 4
-  %5 = alloca i32, align 4
-  %6 = alloca i32, align 4
-  %7 = alloca i32, align 4
-  %8 = alloca i32, align 4
-  store i32 0, i32* %1, align 4
-  store i32 5, i32* %3, align 4
-  store i32 0, i32* %8, align 4
-  br label %9
+entry:
+  %retval = alloca i32, align 4
+  %a = alloca i32, align 4
+  %b = alloca i32, align 4
+  %c = alloca i32, align 4
+  %d = alloca i32, align 4
+  %e = alloca i32, align 4
+  %f = alloca i32, align 4
+  %i = alloca i32, align 4
+  store i32 0, i32* %retval, align 4
+  store i32 5, i32* %b, align 4
+  store i32 0, i32* %i, align 4
+  br label %while.cond
 
-; <label>:9:                                      ; preds = %19, %0
-  %10 = load i32, i32* %8, align 4
-  %11 = icmp slt i32 %10, 10
-  br i1 %11, label %12, label %22
+while.cond:                                       ; preds = %if.end, %entry
+  %0 = load i32, i32* %i, align 4
+  %cmp = icmp slt i32 %0, 10
+  br i1 %cmp, label %while.body, label %while.end
 
-; <label>:12:                                     ; preds = %9
-  %13 = load i32, i32* %8, align 4
-  %14 = srem i32 %13, 2
-  %15 = icmp eq i32 %14, 0
-  br i1 %15, label %16, label %17
+while.body:                                       ; preds = %while.cond
+  %1 = load i32, i32* %i, align 4
+  %rem = srem i32 %1, 2
+  %cmp1 = icmp eq i32 %rem, 0
+  br i1 %cmp1, label %if.then, label %if.else
 
-; <label>:16:                                     ; preds = %12
-  store i32 -1, i32* %7, align 4
-  br label %19
+if.then:                                          ; preds = %while.body
+  store i32 -1, i32* %f, align 4
+  br label %if.end
 
-; <label>:17:                                     ; preds = %12
-  %18 = load i32, i32* %3, align 4
-  store i32 %18, i32* %4, align 4
-  br label %19
+if.else:                                          ; preds = %while.body
+  %2 = load i32, i32* %b, align 4
+  store i32 %2, i32* %c, align 4
+  br label %if.end
 
-; <label>:19:                                     ; preds = %17, %16
-  %20 = load i32, i32* %8, align 4
-  %21 = add nsw i32 %20, 1
-  store i32 %21, i32* %8, align 4
-  br label %9
+if.end:                                           ; preds = %if.else, %if.then
+  %3 = load i32, i32* %i, align 4
+  %inc = add nsw i32 %3, 1
+  store i32 %inc, i32* %i, align 4
+  br label %while.cond
 
-; <label>:22:                                     ; preds = %9
-  %23 = load i32, i32* %5, align 4
-  store i32 %23, i32* %6, align 4
-  %24 = load i32, i32* %1, align 4
-  ret i32 %24
+while.end:                                        ; preds = %while.cond
+  %4 = load i32, i32* %d, align 4
+  store i32 %4, i32* %e, align 4
+  %5 = load i32, i32* %retval, align 4
+  ret i32 %5
 }
 
 attributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }

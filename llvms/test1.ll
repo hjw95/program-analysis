@@ -5,30 +5,31 @@ target triple = "x86_64-pc-linux-gnu"
 
 ; Function Attrs: noinline nounwind optnone uwtable
 define dso_local i32 @main() #0 {
-  %1 = alloca i32, align 4
-  %2 = alloca i32, align 4
-  %3 = alloca i32, align 4
-  store i32 0, i32* %1, align 4
-  store i32 0, i32* %3, align 4
-  %4 = load i32, i32* %2, align 4
-  %5 = icmp sgt i32 %4, 0
-  br i1 %5, label %6, label %9
+entry:
+  %retval = alloca i32, align 4
+  %a = alloca i32, align 4
+  %c = alloca i32, align 4
+  store i32 0, i32* %retval, align 4
+  store i32 0, i32* %c, align 4
+  %0 = load i32, i32* %a, align 4
+  %cmp = icmp sgt i32 %0, 0
+  br i1 %cmp, label %if.then, label %if.else
 
-; <label>:6:                                      ; preds = %0
-  %7 = load i32, i32* %3, align 4
-  %8 = add nsw i32 %7, 10
-  store i32 %8, i32* %3, align 4
-  br label %12
+if.then:                                          ; preds = %entry
+  %1 = load i32, i32* %c, align 4
+  %add = add nsw i32 %1, 10
+  store i32 %add, i32* %c, align 4
+  br label %if.end
 
-; <label>:9:                                      ; preds = %0
-  %10 = load i32, i32* %3, align 4
-  %11 = add nsw i32 %10, 15
-  store i32 %11, i32* %3, align 4
-  br label %12
+if.else:                                          ; preds = %entry
+  %2 = load i32, i32* %c, align 4
+  %add1 = add nsw i32 %2, 15
+  store i32 %add1, i32* %c, align 4
+  br label %if.end
 
-; <label>:12:                                     ; preds = %9, %6
-  %13 = load i32, i32* %1, align 4
-  ret i32 %13
+if.end:                                           ; preds = %if.else, %if.then
+  %3 = load i32, i32* %retval, align 4
+  ret i32 %3
 }
 
 attributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }

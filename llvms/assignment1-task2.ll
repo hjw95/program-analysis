@@ -5,33 +5,34 @@ target triple = "x86_64-pc-linux-gnu"
 
 ; Function Attrs: noinline nounwind optnone uwtable
 define dso_local i32 @main() #0 {
-  %1 = alloca i32, align 4
-  %2 = alloca i32, align 4
-  %3 = alloca i32, align 4
-  %4 = alloca i32, align 4
-  %5 = alloca i32, align 4
-  %6 = alloca i32, align 4
-  %7 = alloca i32, align 4
-  store i32 0, i32* %1, align 4
-  store i32 5, i32* %3, align 4
-  %8 = load i32, i32* %2, align 4
-  %9 = icmp sgt i32 %8, 0
-  br i1 %9, label %10, label %11
+entry:
+  %retval = alloca i32, align 4
+  %a = alloca i32, align 4
+  %b = alloca i32, align 4
+  %c = alloca i32, align 4
+  %d = alloca i32, align 4
+  %e = alloca i32, align 4
+  %f = alloca i32, align 4
+  store i32 0, i32* %retval, align 4
+  store i32 5, i32* %b, align 4
+  %0 = load i32, i32* %a, align 4
+  %cmp = icmp sgt i32 %0, 0
+  br i1 %cmp, label %if.then, label %if.else
 
-; <label>:10:                                     ; preds = %0
-  store i32 -1, i32* %7, align 4
-  br label %13
+if.then:                                          ; preds = %entry
+  store i32 -1, i32* %f, align 4
+  br label %if.end
 
-; <label>:11:                                     ; preds = %0
-  %12 = load i32, i32* %3, align 4
-  store i32 %12, i32* %4, align 4
-  br label %13
+if.else:                                          ; preds = %entry
+  %1 = load i32, i32* %b, align 4
+  store i32 %1, i32* %c, align 4
+  br label %if.end
 
-; <label>:13:                                     ; preds = %11, %10
-  %14 = load i32, i32* %5, align 4
-  store i32 %14, i32* %6, align 4
-  %15 = load i32, i32* %1, align 4
-  ret i32 %15
+if.end:                                           ; preds = %if.else, %if.then
+  %2 = load i32, i32* %d, align 4
+  store i32 %2, i32* %e, align 4
+  %3 = load i32, i32* %retval, align 4
+  ret i32 %3
 }
 
 attributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
