@@ -1,12 +1,12 @@
 digraph "CFG for 'main' function" {
 	label="CFG for 'main' function";
 
-	Node0x55fe04d255b0 [shape=record,label="{%0:\l  %1 = alloca i32, align 4\l  %2 = alloca i32, align 4\l  %3 = alloca i32, align 4\l  store i32 0, i32* %1, align 4\l  store i32 0, i32* %3, align 4\l  %4 = load i32, i32* %2, align 4\l  %5 = icmp sgt i32 %4, 0\l  br i1 %5, label %6, label %9\l|{<s0>T|<s1>F}}"];
-	Node0x55fe04d255b0:s0 -> Node0x55fe04d26040;
-	Node0x55fe04d255b0:s1 -> Node0x55fe04d26090;
-	Node0x55fe04d26040 [shape=record,label="{%6:\l\l  %7 = load i32, i32* %3, align 4\l  %8 = add nsw i32 %7, 10\l  store i32 %8, i32* %3, align 4\l  br label %12\l}"];
-	Node0x55fe04d26040 -> Node0x55fe04d25f80;
-	Node0x55fe04d26090 [shape=record,label="{%9:\l\l  %10 = load i32, i32* %3, align 4\l  %11 = add nsw i32 %10, 15\l  store i32 %11, i32* %3, align 4\l  br label %12\l}"];
-	Node0x55fe04d26090 -> Node0x55fe04d25f80;
-	Node0x55fe04d25f80 [shape=record,label="{%12:\l\l  %13 = load i32, i32* %1, align 4\l  ret i32 %13\l}"];
+	Node0x5652ce4c55f0 [shape=record,label="{entry:\l  %retval = alloca i32, align 4\l  %a = alloca i32, align 4\l  %c = alloca i32, align 4\l  store i32 0, i32* %retval, align 4\l  store i32 0, i32* %c, align 4\l  %0 = load i32, i32* %a, align 4\l  %cmp = icmp sgt i32 %0, 0\l  br i1 %cmp, label %if.then, label %if.else\l|{<s0>T|<s1>F}}"];
+	Node0x5652ce4c55f0:s0 -> Node0x5652ce4c6120;
+	Node0x5652ce4c55f0:s1 -> Node0x5652ce4c61f0;
+	Node0x5652ce4c6120 [shape=record,label="{if.then:                                          \l  %1 = load i32, i32* %c, align 4\l  %add = add nsw i32 %1, 10\l  store i32 %add, i32* %c, align 4\l  br label %if.end\l}"];
+	Node0x5652ce4c6120 -> Node0x5652ce4c6400;
+	Node0x5652ce4c61f0 [shape=record,label="{if.else:                                          \l  %2 = load i32, i32* %c, align 4\l  %add1 = add nsw i32 %2, 15\l  store i32 %add1, i32* %c, align 4\l  br label %if.end\l}"];
+	Node0x5652ce4c61f0 -> Node0x5652ce4c6400;
+	Node0x5652ce4c6400 [shape=record,label="{if.end:                                           \l  %3 = load i32, i32* %retval, align 4\l  ret i32 %3\l}"];
 }

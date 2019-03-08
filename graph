@@ -18,5 +18,11 @@ mv cfg.main.dot graphs/assignment1-task2.dot
 opt-7 -dot-cfg llvms/assignment1-task3.ll
 mv cfg.main.dot graphs/assignment1-task3.dot
 
+opt-7 -dot-cfg llvms/assignment2-example1.ll
+mv cfg.main.dot graphs/assignment2-example1.dot
+
+opt-7 -dot-cfg llvms/assignment2-example2.ll
+mv cfg.main.dot graphs/assignment2-example2.dot
+
 cd graphs
 ./allfigs2pdf
