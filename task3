@@ -1,3 +1,0 @@
-#!/bin/bash
-
-./bin/assignment2 llvms/assignment2-example3.ll

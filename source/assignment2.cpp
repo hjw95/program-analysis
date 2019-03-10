@@ -59,14 +59,6 @@ int main(int argc, char **argv)
     return 0;
 }
 
-void printOperand(Instruction &I)
-{
-    print(I.getOperand(0));
-    print(I.getOperand(1));
-    print(I.getOperand(2));
-    print(I.getOperand(3));
-}
-
 set<string> generate(BasicBlock *bb, set<string> entry)
 {
     set<string> generate;
@@ -100,11 +92,6 @@ set<string> generate(BasicBlock *bb, set<string> entry)
                 sinks.insert(label(&I));
             }
         }
-    }
-
-    for (string s : sinks)
-    {
-        outs() << s << "\n";
     }
 
     return generate;

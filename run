@@ -1,0 +1,13 @@
+#!/bin/bash
+
+echo "Example 1"
+./bin/assignment2 llvms/assignment2-example1.ll
+echo ""
+
+
+echo "Example 2"
+./bin/assignment2 llvms/assignment2-example2.ll
+echo ""
+
+echo "Example 3"
+./bin/assignment2 llvms/assignment2-example3.ll
