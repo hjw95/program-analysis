@@ -19,7 +19,7 @@
 using namespace llvm;
 using namespace std;
 
-void traverse(BasicBlock *BB, set<string> entrySet);
+void flow(BasicBlock *BB, set<string> entrySet);
 
 set<string> generate(BasicBlock *bb, set<string> previous);
 set<string> combine(set<string> entry, set<string> generate, set<string> previous);
@@ -28,6 +28,8 @@ void print(const Value *bb);
 void print(const map<string, set<string>> analysisMap);
 
 string label(const Value *Node);
+
+BasicBlock *findMain(unique_ptr<Module> *m);
 
 map<string, set<string>> analysisMap;
 
@@ -44,19 +46,32 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    for (auto &F : *M)
+    BasicBlock *main = findMain(&M);
+    if (main == nullptr)
     {
-        if (strncmp(F.getName().str().c_str(), "main", 4) == 0)
-        {
-            BasicBlock *BB = dyn_cast<BasicBlock>(F.begin());
-            set<string> emptySet;
-            traverse(BB, emptySet);
-        }
+        fprintf(stderr, "error: main not found in LLVM IR file \"%s\"", argv[1]);
+        return EXIT_FAILURE;
     }
+
+    set<string> emptySet;
+    flow(main, emptySet);
 
     print(analysisMap);
 
     return 0;
+}
+
+BasicBlock *findMain(unique_ptr<Module> *m)
+{
+    for (auto &F : **m)
+    {
+        if (strncmp(F.getName().str().c_str(), "main", 4) == 0)
+        {
+            BasicBlock *BB = dyn_cast<BasicBlock>(F.begin());
+            return BB;
+        }
+    }
+    return NULL;
 }
 
 set<string> generate(BasicBlock *bb, set<string> entry)
@@ -107,7 +122,7 @@ set<string> combine(set<string> entry, set<string> generate)
     return combined;
 }
 
-void traverse(BasicBlock *BB, set<string> entrySet)
+void flow(BasicBlock *BB, set<string> entrySet)
 {
     const TerminatorInst *TInst = BB->getTerminator();
     unsigned NSucc = TInst->getNumSuccessors();
@@ -149,7 +164,7 @@ void traverse(BasicBlock *BB, set<string> entrySet)
     for (unsigned i = 0; i < NSucc; i++)
     {
         BasicBlock *Succ = TInst->getSuccessor(i);
-        traverse(Succ, exitSet);
+        flow(Succ, exitSet);
     }
 }
 
