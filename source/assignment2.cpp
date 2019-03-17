@@ -25,6 +25,9 @@ set<string> generate(BasicBlock *bb, set<string> previous);
 set<string> combine(set<string> entry, set<string> generate, set<string> previous);
 
 void print(const Value *bb);
+void print(const Value *bb, string label);
+
+void print(set<string> stringSet);
 void print(const map<string, set<string>> analysisMap);
 
 string label(const Value *Node);
@@ -107,7 +110,22 @@ set<string> generate(BasicBlock *bb, set<string> entry)
                 sinks.insert(label(&I));
             }
         }
+        else if (isa<BinaryOperator>(I))
+        {
+            Value *op1 = I.getOperand(0);
+            Value *op2 = I.getOperand(0);
+            if ((!isa<Constant>(op1)) && sinks.count(label(op1)) > 0)
+            {
+                sinks.insert(label(&I));
+            }
+            else if ((!isa<Constant>(op2)) && sinks.count(label(op2)) > 0)
+            {
+                sinks.insert(label(&I));
+            }
+        }
     }
+
+    print(sinks);
 
     return generate;
 }
@@ -168,6 +186,22 @@ void flow(BasicBlock *BB, set<string> entrySet)
     }
 }
 
+void print(const set<string> stringSet)
+{
+    outs() << "Set \t: {";
+    bool first = true;
+    for (string var : stringSet)
+    {
+        if (!first)
+        {
+            outs() << ", ";
+        }
+        outs() << var;
+        first = false;
+    }
+    outs() << "} \n";
+}
+
 void print(const map<string, set<string>> analysisMap)
 {
     for (auto &row : analysisMap)
@@ -192,6 +226,13 @@ void print(const map<string, set<string>> analysisMap)
 void print(const Value *bb)
 {
     outs() << "Instruction:";
+    bb->print(outs());
+    outs() << "\n";
+}
+
+void print(const Value *bb, string label)
+{
+    outs() << label + ":";
     bb->print(outs());
     outs() << "\n";
 }
