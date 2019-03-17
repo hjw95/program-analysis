@@ -113,7 +113,8 @@ set<string> generate(BasicBlock *bb, set<string> entry)
         else if (isa<BinaryOperator>(I))
         {
             Value *op1 = I.getOperand(0);
-            Value *op2 = I.getOperand(0);
+            Value *op2 = I.getOperand(1);
+
             if ((!isa<Constant>(op1)) && sinks.count(label(op1)) > 0)
             {
                 sinks.insert(label(&I));

@@ -10,6 +10,9 @@ entry:
   %b = alloca i32, align 4
   %c = alloca i32, align 4
   %d = alloca i32, align 4
+  %e = alloca i32, align 4
+  %f = alloca i32, align 4
+  %g = alloca i32, align 4
   %sink = alloca i32, align 4
   %source = alloca i32, align 4
   %N = alloca i32, align 4
@@ -41,19 +44,26 @@ if.then:                                          ; preds = %while.body
 if.else:                                          ; preds = %while.body
   %5 = load i32, i32* %b, align 4
   store i32 %5, i32* %c, align 4
+  %6 = load i32, i32* %i, align 4
+  %add2 = add nsw i32 %6, 1
+  store i32 %add2, i32* %g, align 4
+  %7 = load i32, i32* %g, align 4
+  %8 = load i32, i32* %d, align 4
+  %div = sdiv i32 %7, %8
+  store i32 %div, i32* %f, align 4
   br label %if.end
 
 if.end:                                           ; preds = %if.else, %if.then
-  %6 = load i32, i32* %i, align 4
-  %inc = add nsw i32 %6, 1
+  %9 = load i32, i32* %i, align 4
+  %inc = add nsw i32 %9, 1
   store i32 %inc, i32* %i, align 4
   br label %while.cond
 
 while.end:                                        ; preds = %while.cond
-  %7 = load i32, i32* %c, align 4
-  store i32 %7, i32* %sink, align 4
-  %8 = load i32, i32* %retval, align 4
-  ret i32 %8
+  %10 = load i32, i32* %c, align 4
+  store i32 %10, i32* %sink, align 4
+  %11 = load i32, i32* %retval, align 4
+  ret i32 %11
 }
 
 attributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
