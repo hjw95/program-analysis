@@ -11,3 +11,7 @@ echo ""
 
 echo "Example 3"
 ./bin/assignment2 llvms/assignment2-example3.ll
+echo ""
+
+echo "Example 4"
+./bin/assignment2 llvms/assignment2-example4.ll
