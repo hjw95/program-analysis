@@ -126,8 +126,6 @@ set<string> generate(BasicBlock *bb, set<string> entry)
         }
     }
 
-    print(sinks);
-
     return generate;
 }
 

@@ -1,6 +1,6 @@
 int main()
 {
-    int b, c, d, e, f, g, sink, source, N;
+    int b, c, d, e, f, g, h, sink, source, N;
     // read source from input
     int i = 0;
     while (i < N)
@@ -9,12 +9,13 @@ int main()
         {
             b = source;
             d = source + 1;
+            f = h;
         }
         else
         {
             c = b;
             g = i + 1;
-            f = g / d;
+            h = g / d;
         }
         i++;
     }
