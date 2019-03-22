@@ -42,6 +42,7 @@ if.then:                                          ; preds = %while.body
   store i32 %add, i32* %d, align 4
   %5 = load i32, i32* %h, align 4
   store i32 %5, i32* %f, align 4
+  store i32 0, i32* %f, align 4
   br label %if.end
 
 if.else:                                          ; preds = %while.body

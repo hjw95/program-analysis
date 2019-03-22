@@ -101,6 +101,11 @@ set<string> generate(BasicBlock *bb, set<string> entry)
                 generate.insert(label(sink));
                 sinks.insert(label(sink));
             }
+            else
+            {
+                generate.erase(label(sink));
+                sinks.erase(label(sink));
+            }
         }
         else if (isa<LoadInst>(I))
         {
@@ -108,6 +113,10 @@ set<string> generate(BasicBlock *bb, set<string> entry)
             if (sinks.count(label(source)) > 0)
             {
                 sinks.insert(label(&I));
+            }
+            else
+            {
+                sinks.erase(label(&I));
             }
         }
         else if (isa<BinaryOperator>(I))
@@ -122,6 +131,10 @@ set<string> generate(BasicBlock *bb, set<string> entry)
             else if ((!isa<Constant>(op2)) && sinks.count(label(op2)) > 0)
             {
                 sinks.insert(label(&I));
+            }
+            else
+            {
+                sinks.erase(label(&I));
             }
         }
     }

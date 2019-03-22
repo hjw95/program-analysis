@@ -10,6 +10,7 @@ int main()
             b = source;
             d = source + 1;
             f = h;
+            f = 0;
         }
         else
         {
