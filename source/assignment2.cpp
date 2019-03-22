@@ -112,10 +112,12 @@ set<string> generate(BasicBlock *bb, set<string> entry)
             Value *source = I.getOperand(0);
             if (sinks.count(label(source)) > 0)
             {
+                generate.insert(label(&I));
                 sinks.insert(label(&I));
             }
             else
             {
+                generate.erase(label(&I));
                 sinks.erase(label(&I));
             }
         }
@@ -126,14 +128,17 @@ set<string> generate(BasicBlock *bb, set<string> entry)
 
             if ((!isa<Constant>(op1)) && sinks.count(label(op1)) > 0)
             {
+                generate.insert(label(&I));
                 sinks.insert(label(&I));
             }
             else if ((!isa<Constant>(op2)) && sinks.count(label(op2)) > 0)
             {
+                generate.insert(label(&I));
                 sinks.insert(label(&I));
             }
             else
             {
+                generate.erase(label(&I));
                 sinks.erase(label(&I));
             }
         }
