@@ -1,0 +1,166 @@
+\documentclass[11pt,a4paper,fleqn]{article}
+\usepackage{geometry}
+\usepackage{tabularx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\geometry{
+   a4paper,
+   left=20mm,
+   right=20mm,
+   top=20mm,
+   bottom=20mm,
+}
+
+\setlength\parskip{11pt}
+\setlength\parindent{0pt}
+\title{Assignment 1}
+\author{Hady Januar Willi}
+\date{March 2019}
+\begin{document}
+   % \maketitle
+   \begin{center}
+      \LARGE Assignment 2
+   \end{center}
+   \section{Student Information}
+
+   \begin{tabular}{l l} 
+      Name           & : Hady Januar Willi      \\ 
+      Student ID     & : A0174396R              \\
+      School Email   & : E0210429@u.nus.edu     \\
+      Email          & : hadywilli@outlook.com  \\
+   \end{tabular}
+   
+   \section{Initialized Variables Analysis Design}
+
+   This analysis is a may analysis where the variable listed may or may not be initialized in that block from the previous block. 
+   There is no kill in this analysis as all the kill function always results in empty set.
+
+   \subsection{Entry and Exit}
+
+   \begin{equation}
+      IV_{entry}(\ell)=
+      \begin{cases} 
+         \varnothing & if \ell = init(S_*) \\ 
+         \cup \{ IV_{exit}(\ell')|(\ell',\ell) \in flow(S_*) \} & otherwise \\   
+      \end{cases}
+   \end{equation}
+   \begin{equation}
+      IV_{exit}(\ell)=(IV_{entry}(\ell)) \cup gen_{IV}(B^{\ell}) where B^{\ell} \in blocks(S_*)
+   \end{equation}
+   
+   \subsection{Generate}
+
+   \begin{equation}
+      gen_{IV}=([z:=a]^{\ell})=\{z\}
+   \end{equation}
+   \begin{equation}
+      gen_{IV}=([skip]^{\ell})=\varnothing
+   \end{equation}
+   \begin{equation}
+      gen_{IV}=([b]^{\ell})=IV(b)
+   \end{equation}
+
+   \subsection{Kill}
+
+   \begin{equation}
+      kill_{IV}=([z:=a]^{\ell})=\varnothing
+   \end{equation}
+   \begin{equation}
+      kill_{IV}=([skip]^{\ell})=\varnothing
+   \end{equation}
+   \begin{equation}
+      kill_{IV}=([b]^{\ell})=\varnothing
+   \end{equation}
+
+   \subsection{Template}
+
+   \begin{tabularx}{\linewidth}{| l | X |}
+      \hline
+      \textbf{Pattern} & \textbf{Instance} \\
+      \hline\hline
+      \( L \)  & \( P(Var_*) \) \\
+      \hline
+      \( \sqsubseteq \)  & \( \subseteq \) \\
+      \hline
+      \( \sqcup \)  & \( \cup \) \\
+      \hline
+      \( \perp \)  & \( \varnothing \) \\
+      \hline
+      \( l \)  & \( \varnothing \) \\
+      \hline
+      \( E \)  & \( init(S_*) \) \\
+      \hline
+      \( F \)  & \( flow(S_*) \) \\
+      \hline
+      \( \tilde{F} \)  & \( \{f : L \rightarrow L | \exists l_g : f(l) = l \cup l_g \} \) \\
+      \hline
+      \( f_{\ell} \)  & \( f_{\ell}(l) = l \cup gen(B^{\ell}) \ where \ B^{\ell} \in blocks (S_*) \) \\
+      \hline
+   \end{tabularx}
+
+   \section{Analysis Implementation}
+
+   The analysis designed above is implemented using LLVM version 7 in a clean Ubuntu 18.04 virtual machine. 
+   The full LLVM installation script is included together with the submission package.
+   
+   The implementation for both task 2 and task 3 uses simple depth first search by recursive function. 
+   The notion of node is LLVM basic block and path is LLVM basic block parent - child relation in LLVM flow. 
+   For each store instruction in the basic block, the operand is added into the current node set. 
+   Graph traversal continues if there is a successor, and if either one of the two conditions below is met:
+
+   \begin{enumerate}
+      \item The current node is not traversed yet
+      \item The initialized variable set size increased for the current node
+   \end{enumerate}
+
+   \section{Submission Folder Structure}
+
+   \begin{tabularx}{\linewidth}{l l l X}
+      $>$ zip  &                    & -- & Folder containing all files                   \\
+               & $>$ bin            & -- & Folder containing compiled assignment binary  \\
+               & $>$ graphs         & -- & Folder containing dot and pdf files generated from LLVM intermediate representation  \\
+               & $>$ installation   & -- & Folder containing LLVM 7 installation script \\
+               & $>$ llvms          & -- & Folder containing LLVM intermediate representation  \\
+               & $>$ source         & -- & Folder containing assignment source code  \\
+               & $>$ target         & -- & Folder containing target C code  \\
+   \end{tabularx}
+
+   \section {Running the Implementation}
+
+   After extracting the file, the following commands can be run in sequence:
+
+   \begin{verbatim}
+      ./compile
+      ./llvm
+      ./task2
+      ./task3
+   \end{verbatim}
+
+   After compilation, to run against any other LLVM intermediate representation file, the following command can be used:
+
+   \begin{verbatim}
+      ./bin/assignment1 other-file.ll
+   \end{verbatim}
+
+   To generate the graphs, the following command can be run:
+
+   \begin{verbatim}
+      ./graph
+   \end{verbatim}
+
+   If all else fails, the compiled binary is also included in the assignment, and can be used with the following command which hopefully runs with or without LLVM libraries:
+
+   \begin{verbatim}
+      ./bin/assignment1/test.ll
+   \end{verbatim}
+
+   \section{Notes}
+
+   \begin{enumerate}
+      \item \%1, which is the return variable is always set in all blocks
+      \item LLVM 7 outputs variables as \%N instead of variable name from source code
+      \item Task 2 command executes against example 1 in assignment handout
+      \item Task 3 command executes against example 3 in assignment handout
+   \end{enumerate}
+   
+\end{document}
