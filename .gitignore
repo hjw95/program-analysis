@@ -40,5 +40,9 @@ bin
 *.fdb_latexmk
 *.aux
 *.synctex.gz
+*.nav
+*.snm
+*.toc
+
 
 .vscode
