@@ -30,7 +30,7 @@
       Email          & : hadywilli@outlook.com  \\
    \end{tabular}
    
-   \section{Initialized Variables Analysis Design}
+   \section{Tainted Variables Analysis Design}
 
    This analysis is a may analysis where the variable listed may or may not be initialized in that block from the previous block. 
    There is no kill in this analysis as all the kill function always results in empty set.
@@ -38,38 +38,38 @@
    \subsection{Entry and Exit}
 
    \begin{equation}
-      IV_{entry}(\ell)=
+      TV_{entry}(\ell)=
       \begin{cases} 
          \varnothing & if \ell = init(S_*) \\ 
-         \cup \{ IV_{exit}(\ell')|(\ell',\ell) \in flow(S_*) \} & otherwise \\   
+         \cup \{ TV_{exit}(\ell')|(\ell',\ell) \in flow(S_*) \} & otherwise \\   
       \end{cases}
    \end{equation}
    \begin{equation}
-      IV_{exit}(\ell)=(IV_{entry}(\ell)) \cup gen_{IV}(B^{\ell}) where B^{\ell} \in blocks(S_*)
+      TV_{exit}(\ell)=(TV_{entry}(\ell)) \cup gen_{TV}(B^{\ell}) where B^{\ell} \in blocks(S_*)
    \end{equation}
    
    \subsection{Generate}
 
    \begin{equation}
-      gen_{IV}=([z:=a]^{\ell})=\{z\}
+      gen_{TV}=([z:=a]^{\ell})=\{z\}
    \end{equation}
    \begin{equation}
-      gen_{IV}=([skip]^{\ell})=\varnothing
+      gen_{TV}=([skip]^{\ell})=\varnothing
    \end{equation}
    \begin{equation}
-      gen_{IV}=([b]^{\ell})=IV(b)
+      gen_{TV}=([b]^{\ell})=TV(b)
    \end{equation}
 
    \subsection{Kill}
 
    \begin{equation}
-      kill_{IV}=([z:=a]^{\ell})=\varnothing
+      kill_{TV}=([z:=a]^{\ell})=\varnothing
    \end{equation}
    \begin{equation}
-      kill_{IV}=([skip]^{\ell})=\varnothing
+      kill_{TV}=([skip]^{\ell})=\varnothing
    \end{equation}
    \begin{equation}
-      kill_{IV}=([b]^{\ell})=\varnothing
+      kill_{TV}=([b]^{\ell})=\varnothing
    \end{equation}
 
    \subsection{Template}
