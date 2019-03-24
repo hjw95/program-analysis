@@ -1,6 +1,8 @@
 \documentclass[11pt,a4paper,fleqn]{article}
 \usepackage{geometry}
 \usepackage{tabularx}
+\usepackage{amsmath}
+\usepackage{amssymb}
 \geometry{
    a4paper,
    left=20mm,
@@ -30,6 +32,14 @@
    
    \section{Initialized Variables Analysis Design}
 
+   \begin{equation}
+   IV_{entry}(\ell)=
+   \begin{cases} 
+      \varnothing & if \ell = init(S_*) \\ 
+      \cup \{ IV_{exit}(\ell')|(\ell',\ell) \in flow(S_*) \} & otherwise \\   
+   \end{cases}
+   \end{equation}
+   
    This analysis is a may analysis where the variable listed may or may not be initialized in that block from the previous block. 
    There is no kill in this analysis as all the kill function always results in empty set.
 
