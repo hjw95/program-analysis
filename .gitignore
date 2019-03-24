@@ -34,4 +34,11 @@
 # Binary
 bin
 
+# Latex
+*.log
+*.fls
+*.fdb_latexmk
+*.aux
+*.synctex.gz
+
 .vscode
