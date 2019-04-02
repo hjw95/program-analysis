@@ -19,6 +19,8 @@
 using namespace llvm;
 using namespace std;
 
+typedef std::map<Value *, std::set<int>> BBANALYSIS;
+
 void flow(BasicBlock *BB, set<string> entrySet);
 
 set<string> generate(BasicBlock *bb, set<string> previous);
@@ -203,6 +205,8 @@ void flow(BasicBlock *BB, set<string> entrySet)
     }
 }
 
+#pragma region Printing
+
 void print(const set<string> stringSet)
 {
     outs() << "Set \t: {";
@@ -264,3 +268,316 @@ string label(const Value *Node)
     Node->printAsOperand(OS, false);
     return OS.str();
 }
+
+#pragma endregion
+
+#pragma region Instruction Analysis
+
+// Processing Alloca Instruction
+std::set<int> processAlloca()
+{
+    std::set<int> set;
+    set.insert(-1000); // Represents negative infinity
+    set.insert(-100); 
+    set.insert(-10); 
+    set.insert(-1);
+    set.insert(0);
+    set.insert(1);
+    set.insert(10);
+    set.insert(100);
+    set.insert(1000); // Represents infinity
+    return set;
+}
+
+// Processing Store Instruction
+std::set<int> processStore(llvm::Instruction *I, BBANALYSIS analysis)
+{
+    Value *op1 = I->getOperand(0);
+    Value *op2 = I->getOperand(1);
+    if (isa<ConstantInt>(op1))
+    {
+        llvm::ConstantInt *CI = dyn_cast<ConstantInt>(op1);
+        int64_t op1Int = CI->getSExtValue();
+        std::set<int> set;
+        if (op1Int % 2 == 1)
+            set.insert(ODD);
+        else if (op1Int % 2 == 0)
+            set.insert(EVEN);
+        return set;
+    }
+    else if (analysis.find(op1) != analysis.end())
+    {
+        return analysis[op1];
+    }
+    else
+    {
+        std::set<int> set;
+        set.insert(ODD);
+        set.insert(EVEN);
+        return set;
+    }
+}
+
+// Processing Load Instruction
+std::set<int> processLoad(llvm::Instruction *I, BBANALYSIS analysis)
+{
+    Value *op1 = I->getOperand(0);
+    if (isa<ConstantInt>(op1))
+    {
+        llvm::ConstantInt *CI = dyn_cast<ConstantInt>(op1);
+        int64_t op1Int = CI->getSExtValue();
+        std::set<int> set;
+        if (op1Int % 2 == 1)
+            set.insert(ODD);
+        else if (op1Int % 2 == 0)
+            set.insert(EVEN);
+        return set;
+    }
+    else if (analysis.find(op1) != analysis.end())
+    {
+        return analysis[op1];
+    }
+    else
+    {
+        std::set<int> set;
+        set.insert(ODD);
+        set.insert(EVEN);
+        return set;
+    }
+}
+
+// Processing Mul Instructions
+std::set<int> processMul(llvm::Instruction *I, BBANALYSIS analysis)
+{
+    Value *op1 = I->getOperand(0);
+    Value *op2 = I->getOperand(1);
+    std::set<int> set1, set2;
+    if (isa<ConstantInt>(op1))
+    {
+        llvm::ConstantInt *CI = dyn_cast<ConstantInt>(op1);
+        int64_t op1Int = CI->getSExtValue();
+        if (op1Int % 2 == 1)
+            set1.insert(ODD);
+        else if (op1Int % 2 == 0)
+            set1.insert(EVEN);
+    }
+    else if (analysis.find(op1) != analysis.end())
+    {
+        set1 = analysis[op1];
+    }
+    else
+    {
+        set1.insert(ODD);
+        set1.insert(EVEN);
+    }
+
+    if (isa<ConstantInt>(op2))
+    {
+        llvm::ConstantInt *CI = dyn_cast<ConstantInt>(op2);
+        int64_t op2Int = CI->getSExtValue();
+        if (op2Int % 2 == 1)
+            set2.insert(ODD);
+        else if (op2Int % 2 == 0)
+            set2.insert(EVEN);
+    }
+    else if (analysis.find(op2) != analysis.end())
+    {
+        set2 = analysis[op2];
+    }
+    else
+    {
+        set2.insert(ODD);
+        set2.insert(EVEN);
+    }
+
+    if (set1.size() == 1 && set1.find(ODD) != set1.end() &&
+        set2.size() == 1 && set2.find(ODD) != set1.end())
+        return set1;
+
+    if (set1.find(ODD) != set1.end() &&
+        set2.find(ODD) != set1.end())
+        return union_sets(set1, set2);
+
+    std::set<int> set;
+    set.insert(EVEN);
+    return set;
+}
+
+// Processing Div Instructions
+std::set<int> processDiv(llvm::Instruction *I, BBANALYSIS analysis)
+{
+    Value *op1 = I->getOperand(0);
+    Value *op2 = I->getOperand(1);
+    std::set<int> set1, set2;
+    if (isa<ConstantInt>(op1))
+    {
+        llvm::ConstantInt *CI = dyn_cast<ConstantInt>(op1);
+        int64_t op1Int = CI->getSExtValue();
+        if (op1Int % 2 == 1)
+            set1.insert(ODD);
+        else if (op1Int % 2 == 0)
+            set1.insert(EVEN);
+    }
+    else if (analysis.find(op1) != analysis.end())
+    {
+        set1 = analysis[op1];
+    }
+    else
+    {
+        set1.insert(ODD);
+        set1.insert(EVEN);
+    }
+
+    if (isa<ConstantInt>(op2))
+    {
+        llvm::ConstantInt *CI = dyn_cast<ConstantInt>(op2);
+        int64_t op2Int = CI->getSExtValue();
+        if (op2Int % 2 == 1)
+            set2.insert(ODD);
+        else if (op2Int % 2 == 0)
+            set2.insert(EVEN);
+    }
+    else if (analysis.find(op2) != analysis.end())
+    {
+        set2 = analysis[op2];
+    }
+    else
+    {
+        set2.insert(ODD);
+        set2.insert(EVEN);
+    }
+
+    if (set1.size() == 1 && set1.find(ODD) != set1.end() &&
+        set2.size() == 1 && set2.find(ODD) != set1.end())
+        return set1;
+
+    std::set<int> set;
+    set.insert(ODD);
+    set.insert(EVEN);
+    return set;
+}
+
+// Processing Add & Sub Instructions
+std::set<int> processAddSub(llvm::Instruction *I, BBANALYSIS analysis)
+{
+    Value *op1 = I->getOperand(0);
+    Value *op2 = I->getOperand(1);
+    std::set<int> set1, set2;
+    if (isa<ConstantInt>(op1))
+    {
+        llvm::ConstantInt *CI = dyn_cast<ConstantInt>(op1);
+        int64_t op1Int = CI->getSExtValue();
+        if (op1Int % 2 == 1)
+            set1.insert(ODD);
+        else if (op1Int % 2 == 0)
+            set1.insert(EVEN);
+    }
+    else if (analysis.find(op1) != analysis.end())
+    {
+        set1 = analysis[op1];
+    }
+    else
+    {
+        set1.insert(ODD);
+        set1.insert(EVEN);
+    }
+
+    if (isa<ConstantInt>(op2))
+    {
+        llvm::ConstantInt *CI = dyn_cast<ConstantInt>(op2);
+        int64_t op2Int = CI->getSExtValue();
+        if (op2Int % 2 == 1)
+            set2.insert(ODD);
+        else if (op2Int % 2 == 0)
+            set2.insert(EVEN);
+    }
+    else if (analysis.find(op2) != analysis.end())
+    {
+        set2 = analysis[op2];
+    }
+    else
+    {
+        set2.insert(ODD);
+        set2.insert(EVEN);
+    }
+
+    std::set<int> EvenSet;
+    EvenSet.insert(EVEN);
+
+    std::set<int> OddSet;
+    OddSet.insert(ODD);
+
+    if ((set1.size() == 1 && set1.find(ODD) != set1.end() &&
+         set2.size() == 1 && set2.find(ODD) != set1.end()) ||
+        (set1.size() == 1 && set1.find(EVEN) != set1.end() &&
+         set2.size() == 1 && set2.find(EVEN) != set1.end()))
+        return EvenSet;
+
+    if ((set1.size() == 1 && set1.find(ODD) != set1.end() &&
+         set2.size() == 1 && set2.find(EVEN) != set1.end()) ||
+        (set1.size() == 1 && set1.find(EVEN) != set1.end() &&
+         set2.size() == 1 && set2.find(ODD) != set1.end()))
+        return OddSet;
+
+    return union_sets(set1, set2);
+}
+
+// Processing Rem Instructions
+std::set<int> processRem(llvm::Instruction *I, BBANALYSIS analysis)
+{
+    Value *op1 = I->getOperand(0);
+    Value *op2 = I->getOperand(1);
+
+    if (isa<ConstantInt>(op2))
+    {
+        llvm::ConstantInt *CI = dyn_cast<ConstantInt>(op2);
+        int64_t op2Int = CI->getSExtValue();
+        if (op2Int != 2)
+        {
+            std::set<int> set;
+            set.insert(ODD);
+            set.insert(EVEN);
+            return set;
+        }
+    }
+
+    std::set<int> set1, set2;
+    if (isa<ConstantInt>(op1))
+    {
+        llvm::ConstantInt *CI = dyn_cast<ConstantInt>(op1);
+        int64_t op1Int = CI->getSExtValue();
+        if (op1Int % 2 == 1)
+            set1.insert(ODD);
+        else if (op1Int % 2 == 0)
+            set1.insert(EVEN);
+    }
+    else if (analysis.find(op1) != analysis.end())
+    {
+        set1 = analysis[op1];
+    }
+    else
+    {
+        set1.insert(ODD);
+        set1.insert(EVEN);
+    }
+
+    if (set1.size() == 1 && set1.find(ODD) != set1.end())
+        return set1;
+
+    if (set1.size() == 1 && set1.find(EVEN) != set1.end())
+        return set1;
+
+    return set1;
+}
+
+#pragma endregion
+
+#pragma region Block Analysis
+
+BBANALYSIS processBlock(BasicBlock *BB)
+{
+}
+
+#pragma endregion
+
+
