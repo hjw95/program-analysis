@@ -1,0 +1,6 @@
+clang -emit-llvm -S -o Collatz.ll Collatz.c
+clang -emit-llvm -c -o Collatz.bc Collatz.c
+
+clang++-3.5  -o absInt absInt.cpp `llvm-config-3.5 --cxxflags` `llvm-config-3.5 --ldflags` `llvm-config-3.5 --libs` -lpthread -lncurses -ldl
+
+absInt Collatz.ll

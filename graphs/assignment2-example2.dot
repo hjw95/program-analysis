@@ -1,12 +1,12 @@
 digraph "CFG for 'main' function" {
 	label="CFG for 'main' function";
 
-	Node0x561dd021a750 [shape=record,label="{entry:\l  %retval = alloca i32, align 4\l  %a = alloca i32, align 4\l  %b = alloca i32, align 4\l  %c = alloca i32, align 4\l  %sink = alloca i32, align 4\l  %source = alloca i32, align 4\l  store i32 0, i32* %retval, align 4\l  %0 = load i32, i32* %a, align 4\l  %cmp = icmp sgt i32 %0, 0\l  br i1 %cmp, label %if.then, label %if.else\l|{<s0>T|<s1>F}}"];
-	Node0x561dd021a750:s0 -> Node0x561dd021b380;
-	Node0x561dd021a750:s1 -> Node0x561dd021b450;
-	Node0x561dd021b380 [shape=record,label="{if.then:                                          \l  %1 = load i32, i32* %source, align 4\l  store i32 %1, i32* %b, align 4\l  br label %if.end\l}"];
-	Node0x561dd021b380 -> Node0x561dd021b5c0;
-	Node0x561dd021b450 [shape=record,label="{if.else:                                          \l  %2 = load i32, i32* %b, align 4\l  store i32 %2, i32* %c, align 4\l  br label %if.end\l}"];
-	Node0x561dd021b450 -> Node0x561dd021b5c0;
-	Node0x561dd021b5c0 [shape=record,label="{if.end:                                           \l  %3 = load i32, i32* %c, align 4\l  store i32 %3, i32* %sink, align 4\l  %4 = load i32, i32* %retval, align 4\l  ret i32 %4\l}"];
+	Node0x556114ec3750 [shape=record,label="{entry:\l  %retval = alloca i32, align 4\l  %a = alloca i32, align 4\l  %b = alloca i32, align 4\l  %c = alloca i32, align 4\l  %sink = alloca i32, align 4\l  %source = alloca i32, align 4\l  store i32 0, i32* %retval, align 4\l  %0 = load i32, i32* %a, align 4\l  %cmp = icmp sgt i32 %0, 0\l  br i1 %cmp, label %if.then, label %if.else\l|{<s0>T|<s1>F}}"];
+	Node0x556114ec3750:s0 -> Node0x556114ec4380;
+	Node0x556114ec3750:s1 -> Node0x556114ec4450;
+	Node0x556114ec4380 [shape=record,label="{if.then:                                          \l  %1 = load i32, i32* %source, align 4\l  store i32 %1, i32* %b, align 4\l  br label %if.end\l}"];
+	Node0x556114ec4380 -> Node0x556114ec45c0;
+	Node0x556114ec4450 [shape=record,label="{if.else:                                          \l  %2 = load i32, i32* %b, align 4\l  store i32 %2, i32* %c, align 4\l  br label %if.end\l}"];
+	Node0x556114ec4450 -> Node0x556114ec45c0;
+	Node0x556114ec45c0 [shape=record,label="{if.end:                                           \l  %3 = load i32, i32* %c, align 4\l  store i32 %3, i32* %sink, align 4\l  %4 = load i32, i32* %retval, align 4\l  ret i32 %4\l}"];
 }
