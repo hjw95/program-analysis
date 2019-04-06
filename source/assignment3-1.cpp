@@ -36,8 +36,6 @@ using namespace std;
 
 // BasicBlock *findMain(unique_ptr<Module> *m);
 
-// map<string, set<string>> analysisMap;
-
 // int main(int argc, char **argv)
 // {
 //     // Read the IR file.
@@ -649,6 +647,18 @@ struct Range
     }
 };
 
+// Variable / register name to range
+typedef std::map<string, Range> ValueAnalysis;
+
+// Basic block to value analysis
+// Widening
+map<string, ValueAnalysis> wideValueAnalysisMap;
+// Narrowing
+map<string, ValueAnalysis> narrowValueAnalysisMap;
+
+// Basic block to range for diff analysis, populated during narrowing
+map<string, Range> diffAnalysisMap;
+
 #pragma region Narrowing
 
 // All implementations are simple approximations using range computation
@@ -882,7 +892,11 @@ int main(int argc, char **argv)
     Range l(-10, 10);
     Range r(0, 4);
 
-    Range added = narrow_rem(l, r);
+    Range test = widen_add(l, r);
+    test = widen_sub(l, r);
+    test = widen_mul(l, r);
+    test = widen_div(l, r);
+    test = widen_rem(l, r);
 
-    cout << added.left << " " << added.right << " " << added.divisionByZero << "\n";
+    cout << test.left << " " << test.right << " " << test.divisionByZero << "\n";
 }
