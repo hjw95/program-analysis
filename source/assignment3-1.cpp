@@ -918,52 +918,106 @@ BasicBlock *findMain(unique_ptr<Module> *m)
 
 #pragma endregion
 
-#pragma region Flow
+#pragma region Widen Flow
 
-void flow(BasicBlock *BB, set<string> entrySet)
+void widen_flow(BasicBlock *BB, ValueAnalysis entrySet)
 {
-    // const TerminatorInst *TInst = BB->getTerminator();
-    // unsigned NSucc = TInst->getNumSuccessors();
+    const TerminatorInst *TInst = BB->getTerminator();
+    unsigned NSucc = TInst->getNumSuccessors();
 
-    // unsigned originalCount = 0;
-    // bool traversed = false;
+    unsigned originalCount = 0;
+    bool traversed = false;
 
-    // string bblabel = label(BB);
+    string bblabel = label(BB);
 
-    // if (analysisMap.count(bblabel) == 0)
-    // {
-    //     // Initialize
-    //     set<string> empty;
-    //     analysisMap[bblabel] = empty;
-    // }
-    // else
-    // {
-    //     originalCount = analysisMap[bblabel].size();
-    //     traversed = true;
-    // }
+    if (wideValueAnalysisMap.count(bblabel) == 0)
+    {
+        // Initialize
+        ValueAnalysis empty;
+        wideValueAnalysisMap[bblabel] = empty;
+    }
+    else
+    {
+        originalCount = wideValueAnalysisMap[bblabel].size();
+        traversed = true;
+    }
 
+    ValueAnalysis generated;
+    ValueAnalysis exitSet;
     // set<string> generated = generate(BB, entrySet);
     // set<string> exitSet = combine(analysisMap[bblabel], generated);
 
-    // analysisMap[bblabel] = exitSet;
+    wideValueAnalysisMap[bblabel] = exitSet;
 
-    // if (NSucc == 0)
-    // {
-    //     return;
-    // }
+    if (NSucc == 0)
+    {
+        return;
+    }
 
-    // unsigned finalCount = exitSet.size();
+    unsigned finalCount = exitSet.size();
 
-    // if (traversed && originalCount == finalCount)
-    // {
-    //     return;
-    // }
+    if (traversed && originalCount == finalCount)
+    {
+        return;
+    }
 
-    // for (unsigned i = 0; i < NSucc; i++)
-    // {
-    //     BasicBlock *Succ = TInst->getSuccessor(i);
-    //     flow(Succ, exitSet);
-    // }
+    for (unsigned i = 0; i < NSucc; i++)
+    {
+        BasicBlock *Succ = TInst->getSuccessor(i);
+        widen_flow(Succ, exitSet);
+    }
+}
+
+#pragma endregion
+
+#pragma region Narrow Flow
+
+void narrow_flow(BasicBlock *BB, ValueAnalysis entrySet)
+{
+    const TerminatorInst *TInst = BB->getTerminator();
+    unsigned NSucc = TInst->getNumSuccessors();
+
+    unsigned originalCount = 0;
+    bool traversed = false;
+
+    string bblabel = label(BB);
+
+    if (narrowValueAnalysisMap.count(bblabel) == 0)
+    {
+        // Initialize
+        ValueAnalysis empty;
+        narrowValueAnalysisMap[bblabel] = empty;
+    }
+    else
+    {
+        originalCount = narrowValueAnalysisMap[bblabel].size();
+        traversed = true;
+    }
+
+    ValueAnalysis generated;
+    ValueAnalysis exitSet;
+    // set<string> generated = generate(BB, entrySet);
+    // set<string> exitSet = combine(analysisMap[bblabel], generated);
+
+    narrowValueAnalysisMap[bblabel] = exitSet;
+
+    if (NSucc == 0)
+    {
+        return;
+    }
+
+    unsigned finalCount = exitSet.size();
+
+    if (traversed && originalCount == finalCount)
+    {
+        return;
+    }
+
+    for (unsigned i = 0; i < NSucc; i++)
+    {
+        BasicBlock *Succ = TInst->getSuccessor(i);
+        narrow_flow(Succ, exitSet);
+    }
 }
 
 #pragma endregion
@@ -981,8 +1035,6 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    init(&M);
-
     BasicBlock *main = findMain(&M);
     if (main == nullptr)
     {
@@ -990,9 +1042,9 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    set<string> emptySet;
-    flow(main, emptySet);
-
+    ValueAnalysis emptyAnalysis;
+    widen_flow(main, emptyAnalysis);
+    narrow_flow(main, emptyAnalysis);
     print(wideValueAnalysisMap);
     print(narrowValueAnalysisMap);
 
