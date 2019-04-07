@@ -6,6 +6,7 @@
 #include <ctime>
 #include <map>
 
+#include "llvm/IR/CFG.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/InstIterator.h"
 #include "llvm/IR/IntrinsicInst.h"
@@ -19,470 +20,7 @@
 using namespace llvm;
 using namespace std;
 
-// typedef std::map<Value *, std::set<int>> BBANALYSIS;
-
-// void flow(BasicBlock *BB, set<string> entrySet);
-
-// set<string> generate(BasicBlock *bb, set<string> previous);
-// set<string> combine(set<string> entry, set<string> generate, set<string> previous);
-
-// void print(const Value *bb);
-// void print(const Value *bb, string label);
-
-// void print(set<string> stringSet);
-// void print(const map<string, set<string>> analysisMap);
-
-// string label(const Value *Node);
-
-// BasicBlock *findMain(unique_ptr<Module> *m);
-
-// BasicBlock *findMain(unique_ptr<Module> *m)
-// {
-//     for (auto &F : **m)
-//     {
-//         if (strncmp(F.getName().str().c_str(), "main", 4) == 0)
-//         {
-//             BasicBlock *BB = dyn_cast<BasicBlock>(F.begin());
-//             return BB;
-//         }
-//     }
-//     return NULL;
-// }
-
-// set<string> generate(BasicBlock *bb, set<string> entry)
-// {
-//     set<string> generate;
-
-//     set<string> sinks;
-
-//     generate.insert("source");
-//     generate.insert(entry.begin(), entry.end());
-
-//     sinks.insert("source");
-//     sinks.insert(entry.begin(), entry.end());
-
-//     for (auto &I : *bb)
-//     {
-//         if (isa<StoreInst>(I))
-//         {
-//             Value *sink = I.getOperand(1);
-//             Value *source = I.getOperand(0);
-
-//             if (sinks.count(label(source)) > 0)
-//             {
-//                 generate.insert(label(sink));
-//                 sinks.insert(label(sink));
-//             }
-//             else
-//             {
-//                 generate.erase(label(sink));
-//                 sinks.erase(label(sink));
-//             }
-//         }
-//         else if (isa<LoadInst>(I))
-//         {
-//             Value *source = I.getOperand(0);
-//             if (sinks.count(label(source)) > 0)
-//             {
-//                 generate.insert(label(&I));
-//                 sinks.insert(label(&I));
-//             }
-//             else
-//             {
-//                 generate.erase(label(&I));
-//                 sinks.erase(label(&I));
-//             }
-//         }
-//         else if (isa<BinaryOperator>(I))
-//         {
-//             Value *op1 = I.getOperand(0);
-//             Value *op2 = I.getOperand(1);
-
-//             if ((!isa<Constant>(op1)) && sinks.count(label(op1)) > 0)
-//             {
-//                 generate.insert(label(&I));
-//                 sinks.insert(label(&I));
-//             }
-//             else if ((!isa<Constant>(op2)) && sinks.count(label(op2)) > 0)
-//             {
-//                 generate.insert(label(&I));
-//                 sinks.insert(label(&I));
-//             }
-//             else
-//             {
-//                 generate.erase(label(&I));
-//                 sinks.erase(label(&I));
-//             }
-//         }
-//     }
-
-//     return generate;
-// }
-
-// set<string> combine(set<string> entry, set<string> generate)
-// {
-//     set<string> combined;
-
-//     combined.insert(entry.begin(), entry.end());
-//     combined.insert(generate.begin(), generate.end());
-
-//     return combined;
-// }
-
-// void flow(BasicBlock *BB, set<string> entrySet)
-// {
-//     const TerminatorInst *TInst = BB->getTerminator();
-//     unsigned NSucc = TInst->getNumSuccessors();
-
-//     unsigned originalCount = 0;
-//     bool traversed = false;
-
-//     string bblabel = label(BB);
-
-//     if (analysisMap.count(bblabel) == 0)
-//     {
-//         // Initialize
-//         set<string> empty;
-//         analysisMap[bblabel] = empty;
-//     }
-//     else
-//     {
-//         originalCount = analysisMap[bblabel].size();
-//         traversed = true;
-//     }
-
-//     set<string> generated = generate(BB, entrySet);
-//     set<string> exitSet = combine(analysisMap[bblabel], generated);
-
-//     analysisMap[bblabel] = exitSet;
-
-//     if (NSucc == 0)
-//     {
-//         return;
-//     }
-
-//     unsigned finalCount = exitSet.size();
-
-//     if (traversed && originalCount == finalCount)
-//     {
-//         return;
-//     }
-
-//     for (unsigned i = 0; i < NSucc; i++)
-//     {
-//         BasicBlock *Succ = TInst->getSuccessor(i);
-//         flow(Succ, exitSet);
-//     }
-// }
-
-// #pragma region Instruction Analysis
-
-// // Processing Alloca Instruction
-// std::set<int> processAlloca()
-// {
-//     std::set<int> set;
-//     set.insert(-1000); // Represents negative infinity
-//     set.insert(-100);
-//     set.insert(-10);
-//     set.insert(-1);
-//     set.insert(0);
-//     set.insert(1);
-//     set.insert(10);
-//     set.insert(100);
-//     set.insert(1000); // Represents infinity
-//     return set;
-// }
-
-// // Processing Store Instruction
-// std::set<int> processStore(llvm::Instruction *I, BBANALYSIS analysis)
-// {
-//     Value *op1 = I->getOperand(0);
-//     Value *op2 = I->getOperand(1);
-//     if (isa<ConstantInt>(op1))
-//     {
-//         llvm::ConstantInt *CI = dyn_cast<ConstantInt>(op1);
-//         int64_t op1Int = CI->getSExtValue();
-//         std::set<int> set;
-//         if (op1Int % 2 == 1)
-//             set.insert(ODD);
-//         else if (op1Int % 2 == 0)
-//             set.insert(EVEN);
-//         return set;
-//     }
-//     else if (analysis.find(op1) != analysis.end())
-//     {
-//         return analysis[op1];
-//     }
-//     else
-//     {
-//         std::set<int> set;
-//         set.insert(ODD);
-//         set.insert(EVEN);
-//         return set;
-//     }
-// }
-
-// // Processing Load Instruction
-// std::set<int> processLoad(llvm::Instruction *I, BBANALYSIS analysis)
-// {
-//     Value *op1 = I->getOperand(0);
-//     if (isa<ConstantInt>(op1))
-//     {
-//         llvm::ConstantInt *CI = dyn_cast<ConstantInt>(op1);
-//         int64_t op1Int = CI->getSExtValue();
-//         std::set<int> set;
-//         if (op1Int % 2 == 1)
-//             set.insert(ODD);
-//         else if (op1Int % 2 == 0)
-//             set.insert(EVEN);
-//         return set;
-//     }
-//     else if (analysis.find(op1) != analysis.end())
-//     {
-//         return analysis[op1];
-//     }
-//     else
-//     {
-//         std::set<int> set;
-//         set.insert(ODD);
-//         set.insert(EVEN);
-//         return set;
-//     }
-// }
-
-// // Processing Mul Instructions
-// std::set<int> processMul(llvm::Instruction *I, BBANALYSIS analysis)
-// {
-//     Value *op1 = I->getOperand(0);
-//     Value *op2 = I->getOperand(1);
-//     std::set<int> set1, set2;
-//     if (isa<ConstantInt>(op1))
-//     {
-//         llvm::ConstantInt *CI = dyn_cast<ConstantInt>(op1);
-//         int64_t op1Int = CI->getSExtValue();
-//         if (op1Int % 2 == 1)
-//             set1.insert(ODD);
-//         else if (op1Int % 2 == 0)
-//             set1.insert(EVEN);
-//     }
-//     else if (analysis.find(op1) != analysis.end())
-//     {
-//         set1 = analysis[op1];
-//     }
-//     else
-//     {
-//         set1.insert(ODD);
-//         set1.insert(EVEN);
-//     }
-
-//     if (isa<ConstantInt>(op2))
-//     {
-//         llvm::ConstantInt *CI = dyn_cast<ConstantInt>(op2);
-//         int64_t op2Int = CI->getSExtValue();
-//         if (op2Int % 2 == 1)
-//             set2.insert(ODD);
-//         else if (op2Int % 2 == 0)
-//             set2.insert(EVEN);
-//     }
-//     else if (analysis.find(op2) != analysis.end())
-//     {
-//         set2 = analysis[op2];
-//     }
-//     else
-//     {
-//         set2.insert(ODD);
-//         set2.insert(EVEN);
-//     }
-
-//     if (set1.size() == 1 && set1.find(ODD) != set1.end() &&
-//         set2.size() == 1 && set2.find(ODD) != set1.end())
-//         return set1;
-
-//     if (set1.find(ODD) != set1.end() &&
-//         set2.find(ODD) != set1.end())
-//         return union_sets(set1, set2);
-
-//     std::set<int> set;
-//     set.insert(EVEN);
-//     return set;
-// }
-
-// // Processing Div Instructions
-// std::set<int> processDiv(llvm::Instruction *I, BBANALYSIS analysis)
-// {
-//     Value *op1 = I->getOperand(0);
-//     Value *op2 = I->getOperand(1);
-//     std::set<int> set1, set2;
-//     if (isa<ConstantInt>(op1))
-//     {
-//         llvm::ConstantInt *CI = dyn_cast<ConstantInt>(op1);
-//         int64_t op1Int = CI->getSExtValue();
-//         if (op1Int % 2 == 1)
-//             set1.insert(ODD);
-//         else if (op1Int % 2 == 0)
-//             set1.insert(EVEN);
-//     }
-//     else if (analysis.find(op1) != analysis.end())
-//     {
-//         set1 = analysis[op1];
-//     }
-//     else
-//     {
-//         set1.insert(ODD);
-//         set1.insert(EVEN);
-//     }
-
-//     if (isa<ConstantInt>(op2))
-//     {
-//         llvm::ConstantInt *CI = dyn_cast<ConstantInt>(op2);
-//         int64_t op2Int = CI->getSExtValue();
-//         if (op2Int % 2 == 1)
-//             set2.insert(ODD);
-//         else if (op2Int % 2 == 0)
-//             set2.insert(EVEN);
-//     }
-//     else if (analysis.find(op2) != analysis.end())
-//     {
-//         set2 = analysis[op2];
-//     }
-//     else
-//     {
-//         set2.insert(ODD);
-//         set2.insert(EVEN);
-//     }
-
-//     if (set1.size() == 1 && set1.find(ODD) != set1.end() &&
-//         set2.size() == 1 && set2.find(ODD) != set1.end())
-//         return set1;
-
-//     std::set<int> set;
-//     set.insert(ODD);
-//     set.insert(EVEN);
-//     return set;
-// }
-
-// // Processing Add & Sub Instructions
-// std::set<int> processAddSub(llvm::Instruction *I, BBANALYSIS analysis)
-// {
-//     Value *op1 = I->getOperand(0);
-//     Value *op2 = I->getOperand(1);
-//     std::set<int> set1, set2;
-//     if (isa<ConstantInt>(op1))
-//     {
-//         llvm::ConstantInt *CI = dyn_cast<ConstantInt>(op1);
-//         int64_t op1Int = CI->getSExtValue();
-//         if (op1Int % 2 == 1)
-//             set1.insert(ODD);
-//         else if (op1Int % 2 == 0)
-//             set1.insert(EVEN);
-//     }
-//     else if (analysis.find(op1) != analysis.end())
-//     {
-//         set1 = analysis[op1];
-//     }
-//     else
-//     {
-//         set1.insert(ODD);
-//         set1.insert(EVEN);
-//     }
-
-//     if (isa<ConstantInt>(op2))
-//     {
-//         llvm::ConstantInt *CI = dyn_cast<ConstantInt>(op2);
-//         int64_t op2Int = CI->getSExtValue();
-//         if (op2Int % 2 == 1)
-//             set2.insert(ODD);
-//         else if (op2Int % 2 == 0)
-//             set2.insert(EVEN);
-//     }
-//     else if (analysis.find(op2) != analysis.end())
-//     {
-//         set2 = analysis[op2];
-//     }
-//     else
-//     {
-//         set2.insert(ODD);
-//         set2.insert(EVEN);
-//     }
-
-//     std::set<int> EvenSet;
-//     EvenSet.insert(EVEN);
-
-//     std::set<int> OddSet;
-//     OddSet.insert(ODD);
-
-//     if ((set1.size() == 1 && set1.find(ODD) != set1.end() &&
-//          set2.size() == 1 && set2.find(ODD) != set1.end()) ||
-//         (set1.size() == 1 && set1.find(EVEN) != set1.end() &&
-//          set2.size() == 1 && set2.find(EVEN) != set1.end()))
-//         return EvenSet;
-
-//     if ((set1.size() == 1 && set1.find(ODD) != set1.end() &&
-//          set2.size() == 1 && set2.find(EVEN) != set1.end()) ||
-//         (set1.size() == 1 && set1.find(EVEN) != set1.end() &&
-//          set2.size() == 1 && set2.find(ODD) != set1.end()))
-//         return OddSet;
-
-//     return union_sets(set1, set2);
-// }
-
-// // Processing Rem Instructions
-// std::set<int> processRem(llvm::Instruction *I, BBANALYSIS analysis)
-// {
-//     Value *op1 = I->getOperand(0);
-//     Value *op2 = I->getOperand(1);
-
-//     if (isa<ConstantInt>(op2))
-//     {
-//         llvm::ConstantInt *CI = dyn_cast<ConstantInt>(op2);
-//         int64_t op2Int = CI->getSExtValue();
-//         if (op2Int != 2)
-//         {
-//             std::set<int> set;
-//             set.insert(ODD);
-//             set.insert(EVEN);
-//             return set;
-//         }
-//     }
-
-//     std::set<int> set1, set2;
-//     if (isa<ConstantInt>(op1))
-//     {
-//         llvm::ConstantInt *CI = dyn_cast<ConstantInt>(op1);
-//         int64_t op1Int = CI->getSExtValue();
-//         if (op1Int % 2 == 1)
-//             set1.insert(ODD);
-//         else if (op1Int % 2 == 0)
-//             set1.insert(EVEN);
-//     }
-//     else if (analysis.find(op1) != analysis.end())
-//     {
-//         set1 = analysis[op1];
-//     }
-//     else
-//     {
-//         set1.insert(ODD);
-//         set1.insert(EVEN);
-//     }
-
-//     if (set1.size() == 1 && set1.find(ODD) != set1.end())
-//         return set1;
-
-//     if (set1.size() == 1 && set1.find(EVEN) != set1.end())
-//         return set1;
-
-//     return set1;
-// }
-
-// #pragma endregion
-
-// #pragma region Block Analysis
-
-// BBANALYSIS processBlock(BasicBlock *BB)
-// {
-// }
-
-// #pragma endregion
+#pragma region Range Struct
 
 struct Range
 {
@@ -553,6 +91,15 @@ struct Range
     }
 };
 
+bool operator==(const Range l, const Range r)
+{
+    return (l.left == r.left) && (l.right == r.right);
+}
+
+#pragma endregion
+
+#pragma region Global Variables
+
 // Variable / register name to range
 typedef std::map<string, Range> ValueAnalysis;
 
@@ -564,6 +111,8 @@ map<string, ValueAnalysis> narrowValueAnalysisMap;
 
 // Basic block to range for diff analysis, populated during narrowing
 map<string, Range> diffAnalysisMap;
+
+#pragma endregion
 
 #pragma region Narrowing
 
@@ -709,6 +258,59 @@ Range narrow_rem(Range l, Range r)
     return Range(newL, newR, divisionByZero);
 }
 
+Range narrow_combine(Range l, Range r)
+{
+    set<int> potentialValues;
+
+    potentialValues.insert(l.left);
+    potentialValues.insert(l.right);
+    potentialValues.insert(r.left);
+    potentialValues.insert(r.right);
+
+    int newL = *potentialValues.begin();
+    int newR = *potentialValues.rbegin();
+
+    return Range(newL, newR);
+}
+
+ValueAnalysis narrow_combine(ValueAnalysis left, ValueAnalysis right)
+{
+    ValueAnalysis combined;
+
+    set<string> keys;
+
+    for (auto it = left.begin(); it != left.end(); ++it)
+    {
+        keys.insert(it->first);
+    }
+
+    for (auto it = right.begin(); it != right.end(); ++it)
+    {
+        keys.insert(it->first);
+    }
+
+    for (string key : keys)
+    {
+        bool leftExist = left.find(key) != left.end();
+        bool rightExist = right.find(key) != right.end();
+
+        if (leftExist && rightExist)
+        {
+            combined[key] = narrow_combine(left[key], right[key]);
+        }
+        else if (leftExist && (!rightExist))
+        {
+            combined[key] = Range(left[key]);
+        }
+        else if ((!leftExist) && rightExist)
+        {
+            combined[key] = Range(right[key]);
+        }
+    }
+
+    return combined;
+}
+
 #pragma endregion
 
 #pragma region Widening
@@ -789,6 +391,49 @@ Range widen_div(Range l, Range r)
 Range widen_rem(Range l, Range r)
 {
     return widen_str(narrow_rem(l, r));
+}
+
+Range widen_combine(Range l, Range r)
+{
+    return widen_str(narrow_combine(l, r));
+}
+
+ValueAnalysis widen_combine(ValueAnalysis left, ValueAnalysis right)
+{
+    ValueAnalysis combined;
+
+    set<string> keys;
+
+    for (auto it = left.begin(); it != left.end(); ++it)
+    {
+        keys.insert(it->first);
+    }
+
+    for (auto it = right.begin(); it != right.end(); ++it)
+    {
+        keys.insert(it->first);
+    }
+
+    for (string key : keys)
+    {
+        bool leftExist = left.find(key) != left.end();
+        bool rightExist = right.find(key) != right.end();
+
+        if (leftExist && rightExist)
+        {
+            combined[key] = widen_combine(left[key], right[key]);
+        }
+        else if (leftExist && (!rightExist))
+        {
+            combined[key] = Range(left[key]);
+        }
+        else if ((!leftExist) && rightExist)
+        {
+            combined[key] = Range(right[key]);
+        }
+    }
+
+    return combined;
 }
 
 #pragma endregion
@@ -892,15 +537,18 @@ void print(const Value *bb, string label)
 
 #pragma region Helper
 
-void init(unique_ptr<Module> *m)
+Function *init(unique_ptr<Module> *m)
 {
-    for (auto &F : **m)
+    Function *F = (*m)->getFunction("main");
+
+    for (auto &BB : *F)
     {
-        ValueAnalysis emptyWide, emptyNarrow;
-        BasicBlock *BB = dyn_cast<BasicBlock>(F.begin());
-        wideValueAnalysisMap[label(BB)] = emptyWide;
-        narrowValueAnalysisMap[label(BB)] = emptyNarrow;
+        ValueAnalysis widenEmpty, narrowEmpty;
+        wideValueAnalysisMap[label(&BB)] = widenEmpty;
+        narrowValueAnalysisMap[label(&BB)] = narrowEmpty;
     }
+
+    return F;
 }
 
 BasicBlock *findMain(unique_ptr<Module> *m)
@@ -968,6 +616,94 @@ void widen_flow(BasicBlock *BB, ValueAnalysis entrySet)
     }
 }
 
+ValueAnalysis widen_pred_cond(ValueAnalysis predAnalysis, BasicBlock *predecessor, BasicBlock *current)
+{
+    ValueAnalysis result;
+
+    return result;
+}
+
+ValueAnalysis widen_generate(BasicBlock *BB, ValueAnalysis predecessorAnalysis)
+{
+    ValueAnalysis result;
+
+    return result;
+}
+
+void widen_generate(Function *F)
+{
+    for (auto &BB : *F)
+    {
+        ValueAnalysis predUnion;
+        // Load the current stored analysis for all predecessor nodes
+        for (auto it = pred_begin(&BB), et = pred_end(&BB); it != et; ++it)
+        {
+            BasicBlock *predecessor = *it;
+            ValueAnalysis predSet = widen_pred_cond(wideValueAnalysisMap[predecessor->getName()], predecessor, &BB);
+            predUnion = widen_combine(predUnion, predSet);
+        }
+
+        ValueAnalysis BBAnalysis = widen_generate(&BB, predUnion);
+        ValueAnalysis OldBBAnalysis = wideValueAnalysisMap[BB.getName()];
+        if (OldBBAnalysis != BBAnalysis)
+        {
+            wideValueAnalysisMap[BB.getName()] = widen_combine(BBAnalysis, OldBBAnalysis);
+        }
+    }
+}
+
+bool widen_fixed_point(map<string, ValueAnalysis> oldAnalysisMap)
+{
+    if (oldAnalysisMap.empty())
+        return false;
+
+    for (auto it = wideValueAnalysisMap.begin(); it != wideValueAnalysisMap.end(); ++it)
+    {
+        ValueAnalysis oldAnalysis = oldAnalysisMap[it->first];
+        ValueAnalysis newAnalysis = it->second;
+        if (oldAnalysis.size() != newAnalysis.size())
+            return false;
+
+        for (auto varRangeAnalysis = newAnalysis.begin(); varRangeAnalysis != newAnalysis.end(); ++varRangeAnalysis)
+        {
+            if (oldAnalysis.find(varRangeAnalysis->first) == oldAnalysis.end())
+            {
+                return false;
+            }
+
+            Range oldRange = oldAnalysis[varRangeAnalysis->first];
+            Range newRange = varRangeAnalysis->second;
+
+            if (oldRange != newRange)
+            {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+void widen(Function *F)
+{
+    map<string, ValueAnalysis> oldAnalysisMap;
+
+    // Fixpoint Loop
+    int i = 0;
+    while (!widen_fixed_point(oldAnalysisMap))
+    {
+        oldAnalysisMap.clear();
+        oldAnalysisMap.insert(wideValueAnalysisMap.begin(), wideValueAnalysisMap.end());
+
+        widen_generate(F);
+
+        outs() << "Round:" << i++ << "\n";
+        print(wideValueAnalysisMap);
+        llvm::errs() << "\n";
+        llvm::errs() << "\n";
+        llvm::errs() << "\n";
+    }
+}
+
 #pragma endregion
 
 #pragma region Narrow Flow
@@ -1020,6 +756,94 @@ void narrow_flow(BasicBlock *BB, ValueAnalysis entrySet)
     }
 }
 
+ValueAnalysis narrow_pred_cond(ValueAnalysis predAnalysis, BasicBlock *predecessor, BasicBlock *current)
+{
+    ValueAnalysis result;
+
+    return result;
+}
+
+ValueAnalysis narrow_generate(BasicBlock *BB, ValueAnalysis predecessorAnalysis)
+{
+    ValueAnalysis result;
+
+    return result;
+}
+
+void narrow_generate(Function *F)
+{
+    for (auto &BB : *F)
+    {
+        ValueAnalysis predUnion;
+        // Load the current stored analysis for all predecessor nodes
+        for (auto it = pred_begin(&BB), et = pred_end(&BB); it != et; ++it)
+        {
+            BasicBlock *predecessor = *it;
+            ValueAnalysis predSet = narrow_pred_cond(narrowValueAnalysisMap[predecessor->getName()], predecessor, &BB);
+            predUnion = narrow_combine(predUnion, predSet);
+        }
+
+        ValueAnalysis BBAnalysis = narrow_generate(&BB, predUnion);
+        ValueAnalysis OldBBAnalysis = narrowValueAnalysisMap[BB.getName()];
+        if (OldBBAnalysis != BBAnalysis)
+        {
+            narrowValueAnalysisMap[BB.getName()] = narrow_combine(BBAnalysis, OldBBAnalysis);
+        }
+    }
+}
+
+bool narrow_fixed_point(map<string, ValueAnalysis> oldAnalysisMap)
+{
+    if (oldAnalysisMap.empty())
+        return false;
+
+    for (auto it = narrowValueAnalysisMap.begin(); it != narrowValueAnalysisMap.end(); ++it)
+    {
+        ValueAnalysis oldAnalysis = oldAnalysisMap[it->first];
+        ValueAnalysis newAnalysis = it->second;
+        if (oldAnalysis.size() != newAnalysis.size())
+            return false;
+
+        for (auto varRangeAnalysis = newAnalysis.begin(); varRangeAnalysis != newAnalysis.end(); ++varRangeAnalysis)
+        {
+            if (oldAnalysis.find(varRangeAnalysis->first) == oldAnalysis.end())
+            {
+                return false;
+            }
+
+            Range oldRange = oldAnalysis[varRangeAnalysis->first];
+            Range newRange = varRangeAnalysis->second;
+
+            if (oldRange != newRange)
+            {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+void narrow(Function *F)
+{
+    map<string, ValueAnalysis> oldAnalysisMap;
+
+    // Fixpoint Loop
+    int i = 0;
+    while (!narrow_fixed_point(oldAnalysisMap))
+    {
+        oldAnalysisMap.clear();
+        oldAnalysisMap.insert(narrowValueAnalysisMap.begin(), narrowValueAnalysisMap.end());
+
+        narrow_generate(F);
+
+        outs() << "Round:" << i++ << "\n";
+        print(narrowValueAnalysisMap);
+        llvm::errs() << "\n";
+        llvm::errs() << "\n";
+        llvm::errs() << "\n";
+    }
+}
+
 #pragma endregion
 
 int main(int argc, char **argv)
@@ -1035,17 +859,12 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    BasicBlock *main = findMain(&M);
-    if (main == nullptr)
-    {
-        fprintf(stderr, "error: main not found in LLVM IR file \"%s\"", argv[1]);
-        return EXIT_FAILURE;
-    }
+    Function *F = init(&M);
 
-    ValueAnalysis emptyAnalysis;
-    widen_flow(main, emptyAnalysis);
-    narrow_flow(main, emptyAnalysis);
+    widen(F);
     print(wideValueAnalysisMap);
+
+    narrow(F);
     print(narrowValueAnalysisMap);
 
     return 0;
