@@ -36,34 +36,6 @@ using namespace std;
 
 // BasicBlock *findMain(unique_ptr<Module> *m);
 
-// int main(int argc, char **argv)
-// {
-//     // Read the IR file.
-//     static LLVMContext Context;
-//     SMDiagnostic Err;
-//     unique_ptr<Module> M = parseIRFile(argv[1], Err, Context);
-
-//     if (M == nullptr)
-//     {
-//         fprintf(stderr, "error: failed to load LLVM IR file \"%s\"", argv[1]);
-//         return EXIT_FAILURE;
-//     }
-
-//     BasicBlock *main = findMain(&M);
-//     if (main == nullptr)
-//     {
-//         fprintf(stderr, "error: main not found in LLVM IR file \"%s\"", argv[1]);
-//         return EXIT_FAILURE;
-//     }
-
-//     set<string> emptySet;
-//     flow(main, emptySet);
-
-//     print(analysisMap);
-
-//     return 0;
-// }
-
 // BasicBlock *findMain(unique_ptr<Module> *m)
 // {
 //     for (auto &F : **m)
@@ -202,72 +174,6 @@ using namespace std;
 //         flow(Succ, exitSet);
 //     }
 // }
-
-// #pragma region Printing
-
-// void print(const set<string> stringSet)
-// {
-//     outs() << "Set \t: {";
-//     bool first = true;
-//     for (string var : stringSet)
-//     {
-//         if (!first)
-//         {
-//             outs() << ", ";
-//         }
-//         outs() << var;
-//         first = false;
-//     }
-//     outs() << "} \n";
-// }
-
-// void print(const map<string, set<string>> analysisMap)
-// {
-//     for (auto &row : analysisMap)
-//     {
-//         string BBLabel = row.first;
-
-//         outs() << BBLabel << "\t: {";
-//         bool first = true;
-//         for (string var : row.second)
-//         {
-//             if (!first)
-//             {
-//                 outs() << ", ";
-//             }
-//             outs() << var;
-//             first = false;
-//         }
-//         outs() << "} \n";
-//     }
-// }
-
-// void print(const Value *bb)
-// {
-//     outs() << "Instruction:";
-//     bb->print(outs());
-//     outs() << "\n";
-// }
-
-// void print(const Value *bb, string label)
-// {
-//     outs() << label + ":";
-//     bb->print(outs());
-//     outs() << "\n";
-// }
-
-// string label(const Value *Node)
-// {
-//     if (!Node->getName().empty())
-//         return Node->getName().str();
-
-//     string Str;
-//     raw_string_ostream OS(Str);
-//     Node->printAsOperand(OS, false);
-//     return OS.str();
-// }
-
-// #pragma endregion
 
 // #pragma region Instruction Analysis
 
@@ -887,16 +793,208 @@ Range widen_rem(Range l, Range r)
 
 #pragma endregion
 
+#pragma region Labels
+
+string label(Range r)
+{
+    string divByZero = r.divisionByZero ? "true" : "false";
+    return "[" + to_string(r.left) + ", " + to_string(r.right) + "] - Division By Zero: " + divByZero;
+}
+
+string label(const Value *Node)
+{
+    if (!Node->getName().empty())
+        return Node->getName().str();
+
+    string Str;
+    raw_string_ostream OS(Str);
+    Node->printAsOperand(OS, false);
+    return OS.str();
+}
+
+#pragma endregion
+
+#pragma region Printing
+
+void print(const ValueAnalysis valueAnalysis)
+{
+    for (auto &row : valueAnalysis)
+    {
+        string variable = row.first;
+        Range variableRange = row.second;
+        outs() << "\t" << variable << " : " << label(variableRange) << "\n";
+    }
+}
+
+void print(const map<string, ValueAnalysis> analysisMap)
+{
+    for (auto &row : analysisMap)
+    {
+        string blockLabel = row.first;
+        ValueAnalysis valueAnalysis = row.second;
+        outs() << blockLabel << " : \n";
+        print(valueAnalysis);
+    }
+}
+
+void print(const set<string> stringSet)
+{
+    outs() << "Set \t: {";
+    bool first = true;
+    for (string var : stringSet)
+    {
+        if (!first)
+        {
+            outs() << ", ";
+        }
+        outs() << var;
+        first = false;
+    }
+    outs() << "} \n";
+}
+
+void print(const map<string, set<string>> analysisMap)
+{
+    for (auto &row : analysisMap)
+    {
+        string BBLabel = row.first;
+
+        outs() << BBLabel << "\t: {";
+        bool first = true;
+        for (string var : row.second)
+        {
+            if (!first)
+            {
+                outs() << ", ";
+            }
+            outs() << var;
+            first = false;
+        }
+        outs() << "} \n";
+    }
+}
+
+void print(const Value *bb)
+{
+    outs() << "Instruction:";
+    bb->print(outs());
+    outs() << "\n";
+}
+
+void print(const Value *bb, string label)
+{
+    outs() << label + ":";
+    bb->print(outs());
+    outs() << "\n";
+}
+
+#pragma endregion
+
+#pragma region Helper
+
+void init(unique_ptr<Module> *m)
+{
+    for (auto &F : **m)
+    {
+        ValueAnalysis emptyWide, emptyNarrow;
+        BasicBlock *BB = dyn_cast<BasicBlock>(F.begin());
+        wideValueAnalysisMap[label(BB)] = emptyWide;
+        narrowValueAnalysisMap[label(BB)] = emptyNarrow;
+    }
+}
+
+BasicBlock *findMain(unique_ptr<Module> *m)
+{
+    for (auto &F : **m)
+    {
+        if (strncmp(F.getName().str().c_str(), "main", 4) == 0)
+        {
+            BasicBlock *BB = dyn_cast<BasicBlock>(F.begin());
+            return BB;
+        }
+    }
+    return NULL;
+}
+
+#pragma endregion
+
+#pragma region Flow
+
+void flow(BasicBlock *BB, set<string> entrySet)
+{
+    // const TerminatorInst *TInst = BB->getTerminator();
+    // unsigned NSucc = TInst->getNumSuccessors();
+
+    // unsigned originalCount = 0;
+    // bool traversed = false;
+
+    // string bblabel = label(BB);
+
+    // if (analysisMap.count(bblabel) == 0)
+    // {
+    //     // Initialize
+    //     set<string> empty;
+    //     analysisMap[bblabel] = empty;
+    // }
+    // else
+    // {
+    //     originalCount = analysisMap[bblabel].size();
+    //     traversed = true;
+    // }
+
+    // set<string> generated = generate(BB, entrySet);
+    // set<string> exitSet = combine(analysisMap[bblabel], generated);
+
+    // analysisMap[bblabel] = exitSet;
+
+    // if (NSucc == 0)
+    // {
+    //     return;
+    // }
+
+    // unsigned finalCount = exitSet.size();
+
+    // if (traversed && originalCount == finalCount)
+    // {
+    //     return;
+    // }
+
+    // for (unsigned i = 0; i < NSucc; i++)
+    // {
+    //     BasicBlock *Succ = TInst->getSuccessor(i);
+    //     flow(Succ, exitSet);
+    // }
+}
+
+#pragma endregion
+
 int main(int argc, char **argv)
 {
-    Range l(-10, 10);
-    Range r(0, 4);
+    // Read the IR file.
+    static LLVMContext Context;
+    SMDiagnostic Err;
+    unique_ptr<Module> M = parseIRFile(argv[1], Err, Context);
 
-    Range test = widen_add(l, r);
-    test = widen_sub(l, r);
-    test = widen_mul(l, r);
-    test = widen_div(l, r);
-    test = widen_rem(l, r);
+    if (M == nullptr)
+    {
+        fprintf(stderr, "error: failed to load LLVM IR file \"%s\"", argv[1]);
+        return EXIT_FAILURE;
+    }
 
-    cout << test.left << " " << test.right << " " << test.divisionByZero << "\n";
+    init(&M);
+
+    BasicBlock *main = findMain(&M);
+    if (main == nullptr)
+    {
+        fprintf(stderr, "error: main not found in LLVM IR file \"%s\"", argv[1]);
+        return EXIT_FAILURE;
+    }
+
+    set<string> emptySet;
+    flow(main, emptySet);
+
+    print(wideValueAnalysisMap);
+    print(narrowValueAnalysisMap);
+
+    return 0;
 }
