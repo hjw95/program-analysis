@@ -281,13 +281,8 @@ Range narrow_combine(Range l, Range r)
     return Range(newL, newR);
 }
 
-// Retrieves the range for l in case of true = l < r
-// gtn -> greater than
-// gte -> greater than equal to
-// ltn -> less than
-// lte -> less than equal to
-
-Range narrow_gtn(Range l, int r)
+// Retrieves the range for l in case of true = l gt r
+Range narrow_gt(Range l, int r)
 {
     if (r < l.left)
     {
@@ -308,7 +303,7 @@ Range narrow_gtn(Range l, int r)
     return Range(0, 0, false, true);
 }
 
-Range narrow_gte(Range l, int r)
+Range narrow_ge(Range l, int r)
 {
     if (r <= l.left)
     {
@@ -325,7 +320,7 @@ Range narrow_gte(Range l, int r)
     return Range(0, 0, false, true);
 }
 
-Range narrow_ltn(Range l, int r)
+Range narrow_lt(Range l, int r)
 {
     if (r > l.right)
     {
@@ -346,7 +341,7 @@ Range narrow_ltn(Range l, int r)
     return Range(0, 0, false, true);
 }
 
-Range narrow_lte(Range l, int r)
+Range narrow_le(Range l, int r)
 {
     if (r >= l.right)
     {
@@ -361,6 +356,18 @@ Range narrow_lte(Range l, int r)
     }
     // r, l.left, l.right, impossible case
     return Range(0, 0, false, true);
+}
+
+Range narrow_eq(Range l, int r)
+{
+    if (l.left <= r && l.right >= r)
+    {
+        return Range(r);
+    }
+    else
+    {
+        return Range(0, 0, false, true);
+    }
 }
 
 ValueAnalysis narrow_combine(ValueAnalysis left, ValueAnalysis right)
@@ -405,7 +412,7 @@ ValueAnalysis narrow_combine(ValueAnalysis left, ValueAnalysis right)
 
 #pragma region Widening
 
-int widen(int v)
+int widen_left(int v)
 {
     if (v < -100)
     {
@@ -422,6 +429,31 @@ int widen(int v)
         return -10;
     }
 
+    if (v == -1 || v == 0 || v == 1)
+    {
+        return v;
+    }
+
+    if (v < 10)
+    {
+        return 1;
+    }
+
+    if (v < 100)
+    {
+        return 10;
+    }
+
+    if (v < 1000)
+    {
+        return 100;
+    }
+
+    return 1000;
+}
+
+int widen_right(int v)
+{
     if (v > 100)
     {
         return 1000;
@@ -437,7 +469,27 @@ int widen(int v)
         return 10;
     }
 
-    return v;
+    if (v == -1 || v == 0 || v == 1)
+    {
+        return v;
+    }
+
+    if (v > -10)
+    {
+        return -1;
+    }
+
+    if (v > -100)
+    {
+        return -10;
+    }
+
+    if (v > -1000)
+    {
+        return -100;
+    }
+
+    return -1000;
 }
 
 Range widen_all()
@@ -447,13 +499,13 @@ Range widen_all()
 
 Range widen_str(int v)
 {
-    return Range(widen(v));
+    return Range(widen_left(v), widen_right(v));
 }
 
 Range widen_str(Range r)
 {
-    int newL = widen(r.left);
-    int newR = widen(r.right);
+    int newL = widen_left(r.left);
+    int newR = widen_right(r.right);
 
     return Range(newL, newR);
 }
@@ -488,24 +540,29 @@ Range widen_combine(Range l, Range r)
     return widen_str(narrow_combine(l, r));
 }
 
-Range widen_gtn(Range l, int r)
+Range widen_gt(Range l, int r)
 {
-    return widen_str(narrow_gtn(l, r));
+    return widen_str(narrow_gt(l, r));
 }
 
-Range widen_gte(Range l, int r)
+Range widen_ge(Range l, int r)
 {
-    return widen_str(narrow_gte(l, r));
+    return widen_str(narrow_ge(l, r));
 }
 
-Range widen_ltn(Range l, int r)
+Range widen_lt(Range l, int r)
 {
-    return widen_str(narrow_ltn(l, r));
+    return widen_str(narrow_lt(l, r));
 }
 
-Range widen_lte(Range l, int r)
+Range widen_le(Range l, int r)
 {
-    return widen_str(narrow_lte(l, r));
+    return widen_str(narrow_le(l, r));
+}
+
+Range widen_eq(Range l, int r)
+{
+    return widen_str(narrow_eq(l, r));
 }
 
 ValueAnalysis widen_combine(ValueAnalysis left, ValueAnalysis right)
@@ -647,6 +704,22 @@ void print(const Value *bb, string label)
 
 #pragma region Helper
 
+string get_load_store_label(Value &v)
+{
+    Instruction &I = cast<Instruction>(v);
+    if (isa<StoreInst>(I))
+    {
+        return label(I.getOperand(1));
+    }
+    else
+    {
+        // Load inst
+        Value *storeInstVal = I.getOperand(0);
+        Instruction *storeInst = cast<Instruction>(storeInstVal);
+        return label(storeInst->getOperand(1));
+    }
+}
+
 Function *init(unique_ptr<Module> *m)
 {
     Function *F = (*m)->getFunction("main");
@@ -726,24 +799,21 @@ void widen_flow(BasicBlock *BB, ValueAnalysis entrySet)
     }
 }
 
-bool widen_pred_cond_branch(Instruction &inst, BasicBlock *current)
+ValueAnalysis widen_pred_cond_branch(ValueAnalysis predAnalysis, Instruction &inst, BasicBlock *current)
 {
+    ValueAnalysis result = ValueAnalysis(predAnalysis);
+
     BranchInst *br = dyn_cast<BranchInst>(&inst);
 
     int numOperands = br->getNumOperands();
     if (numOperands == 1)
     {
         // if end case
-        return true;
+        return result;
     }
 
     // other cases will have 3 operands
-
-    CmpInst &compareInst = cast<CmpInst>(*(br->getOperand(0)));
-
-    print(&compareInst);
     bool cmpResult = false;
-
     if (current == br->getOperand(2))
     {
         // if then
@@ -755,8 +825,109 @@ bool widen_pred_cond_branch(Instruction &inst, BasicBlock *current)
         cmpResult = false;
     }
 
-    // should not hit this
-    return cmpResult;
+    CmpInst &compareInst = cast<CmpInst>(*(br->getOperand(0)));
+    Value *leftOperand = compareInst.getOperand(0);
+    Value *rightOperand = compareInst.getOperand(1);
+
+    // For use in switch cases
+    string lLabel;
+    Range lRange;
+    int rConstant;
+
+    // Assumption here is either left or right operand must be a constant
+    bool reverseOperation = false;
+    if (isa<Constant>(rightOperand))
+    {
+        ConstantInt *CI = dyn_cast<ConstantInt>(rightOperand);
+        rConstant = CI->getSExtValue();
+
+        lLabel = get_load_store_label(*leftOperand);
+        lRange = predAnalysis[lLabel];
+
+        if (!cmpResult)
+        {
+            // Right side constant, false result
+            reverseOperation = true;
+        }
+    }
+    else
+    {
+        ConstantInt *CI = dyn_cast<ConstantInt>(leftOperand);
+        rConstant = CI->getSExtValue();
+
+        lLabel = get_load_store_label(*rightOperand);
+        lRange = predAnalysis[lLabel];
+
+        if (cmpResult)
+        {
+            // Left side constant, true result
+            reverseOperation = true;
+        }
+    }
+
+    // NE not handled as it is complex condition for interval analysis
+    // NE is equal to SGT + SLT
+    switch (compareInst.getPredicate())
+    {
+    case CmpInst::ICMP_SGE:
+    {
+        if (reverseOperation)
+        {
+            result[lLabel] = widen_lt(lRange, rConstant);
+        }
+        else
+        {
+            result[lLabel] = widen_ge(lRange, rConstant);
+        }
+        break;
+    }
+    case CmpInst::ICMP_SGT:
+    {
+        if (reverseOperation)
+        {
+            result[lLabel] = widen_le(lRange, rConstant);
+        }
+        else
+        {
+            result[lLabel] = widen_gt(lRange, rConstant);
+        }
+        break;
+    }
+    case CmpInst::ICMP_SLE:
+    {
+        if (reverseOperation)
+        {
+            result[lLabel] = widen_gt(lRange, rConstant);
+        }
+        else
+        {
+            result[lLabel] = widen_le(lRange, rConstant);
+        }
+        break;
+    }
+    case CmpInst::ICMP_SLT:
+    {
+        if (reverseOperation)
+        {
+            result[lLabel] = widen_ge(lRange, rConstant);
+        }
+        else
+        {
+            result[lLabel] = widen_lt(lRange, rConstant);
+        }
+        break;
+    }
+    case CmpInst::ICMP_EQ:
+    {
+        result[lLabel] = widen_eq(lRange, rConstant);
+        break;
+    }
+    default:
+    {
+        break;
+    }
+    }
+    return result;
 }
 
 ValueAnalysis widen_pred_cond(ValueAnalysis predAnalysis, BasicBlock *predecessor, BasicBlock *current)
@@ -768,7 +939,8 @@ ValueAnalysis widen_pred_cond(ValueAnalysis predAnalysis, BasicBlock *predecesso
 
         if (isa<BranchInst>(inst))
         {
-            bool compareResult = widen_pred_cond_branch(inst, current);
+            result = widen_pred_cond_branch(predAnalysis, inst, current);
+            break;
         }
     }
     return result;
@@ -905,10 +1077,150 @@ void narrow_flow(BasicBlock *BB, ValueAnalysis entrySet)
     }
 }
 
+ValueAnalysis narrow_pred_cond_branch(ValueAnalysis predAnalysis, Instruction &inst, BasicBlock *current)
+{
+    ValueAnalysis result = ValueAnalysis(predAnalysis);
+
+    BranchInst *br = dyn_cast<BranchInst>(&inst);
+
+    int numOperands = br->getNumOperands();
+    if (numOperands == 1)
+    {
+        // if end case
+        return result;
+    }
+
+    // other cases will have 3 operands
+    bool cmpResult = false;
+    if (current == br->getOperand(2))
+    {
+        // if then
+        cmpResult = true;
+    }
+    if (current == br->getOperand(1))
+    {
+        // if else
+        cmpResult = false;
+    }
+
+    CmpInst &compareInst = cast<CmpInst>(*(br->getOperand(0)));
+    Value *leftOperand = compareInst.getOperand(0);
+    Value *rightOperand = compareInst.getOperand(1);
+
+    // For use in switch cases
+    string lLabel;
+    Range lRange;
+    int rConstant;
+
+    // Assumption here is either left or right operand must be a constant
+    bool reverseOperation = false;
+    if (isa<Constant>(rightOperand))
+    {
+        ConstantInt *CI = dyn_cast<ConstantInt>(rightOperand);
+        rConstant = CI->getSExtValue();
+
+        lLabel = get_load_store_label(*leftOperand);
+        lRange = predAnalysis[lLabel];
+
+        if (!cmpResult)
+        {
+            // Right side constant, false result
+            reverseOperation = true;
+        }
+    }
+    else
+    {
+        ConstantInt *CI = dyn_cast<ConstantInt>(leftOperand);
+        rConstant = CI->getSExtValue();
+
+        lLabel = get_load_store_label(*rightOperand);
+        lRange = predAnalysis[lLabel];
+
+        if (cmpResult)
+        {
+            // Left side constant, true result
+            reverseOperation = true;
+        }
+    }
+
+    // NE not handled as it is complex condition for interval analysis
+    // NE is equal to SGT + SLT
+    switch (compareInst.getPredicate())
+    {
+    case CmpInst::ICMP_SGE:
+    {
+        if (reverseOperation)
+        {
+            result[lLabel] = narrow_lt(lRange, rConstant);
+        }
+        else
+        {
+            result[lLabel] = narrow_ge(lRange, rConstant);
+        }
+        break;
+    }
+    case CmpInst::ICMP_SGT:
+    {
+        if (reverseOperation)
+        {
+            result[lLabel] = narrow_le(lRange, rConstant);
+        }
+        else
+        {
+            result[lLabel] = narrow_gt(lRange, rConstant);
+        }
+        break;
+    }
+    case CmpInst::ICMP_SLE:
+    {
+        if (reverseOperation)
+        {
+            result[lLabel] = narrow_gt(lRange, rConstant);
+        }
+        else
+        {
+            result[lLabel] = narrow_le(lRange, rConstant);
+        }
+        break;
+    }
+    case CmpInst::ICMP_SLT:
+    {
+        if (reverseOperation)
+        {
+            result[lLabel] = narrow_ge(lRange, rConstant);
+        }
+        else
+        {
+            result[lLabel] = narrow_lt(lRange, rConstant);
+        }
+        break;
+    }
+    case CmpInst::ICMP_EQ:
+    {
+        result[lLabel] = narrow_eq(lRange, rConstant);
+        break;
+    }
+    default:
+    {
+        break;
+    }
+    }
+    return result;
+}
+
 ValueAnalysis narrow_pred_cond(ValueAnalysis predAnalysis, BasicBlock *predecessor, BasicBlock *current)
 {
     ValueAnalysis result;
+    for (auto rit = predecessor->rbegin(), ritend = predecessor->rend(); rit != ritend; ++rit)
+    {
+        Instruction &inst = *rit;
 
+        if (isa<BranchInst>(inst))
+        {
+            result = narrow_pred_cond_branch(predAnalysis, inst, current);
+            break;
+        }
+    }
     return result;
 }
 
