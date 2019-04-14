@@ -788,7 +788,8 @@ ValueAnalysis widen_combine(ValueAnalysis left, ValueAnalysis right)
 string label(Range r)
 {
     string divByZero = r.divisionByZero ? "true" : "false";
-    return "[" + to_string(r.left) + ", " + to_string(r.right) + "] - Division By Zero: " + divByZero;
+    string impossibleRange = r.impossibleRange ? "true" : "false";
+    return "[" + to_string(r.left) + ", " + to_string(r.right) + "] - Division By Zero: " + divByZero + " - Impossible Range: " + impossibleRange;
 }
 
 string label(const Value *Node)

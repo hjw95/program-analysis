@@ -1,9 +1,6 @@
 int main()
 {
-    int a = 0;
-    int b = 0;
-    int c = 0;
-    int d = 0;
+    int a, b, c, d = 0;
     if (a > 0)
     {
         c = 5;
