@@ -438,22 +438,29 @@ Range narrow_lt(Range l, Range r)
 
     if (l.right == r.right)
     {
-        // impossible case
-        return Range(0, 0, false, true);
+        if (r.right <= l.left)
+        {
+            // impossible case
+            return Range(0, 0, false, true);
+        }
+        else
+        {
+            newR = l.right - 1;
+        }
     }
-    else if (l.right > r.right)
+    else if (l.right < r.right)
     {
         newR = l.right;
     }
     else
     {
-        if (l.right <= r.left)
+        if (r.right <= l.left)
         {
             return Range(0, 0, false, true);
         }
         else
         {
-            newR = l.right;
+            newR = r.right - 1;
         }
     }
     return Range(newL, newR);
@@ -461,19 +468,51 @@ Range narrow_lt(Range l, Range r)
 
 Range narrow_le(Range l, Range r)
 {
-    if (r >= l.right)
+    int newL;
+
+    if (r.left == l.left)
     {
-        // l.left, l.right, r
-        return Range(l);
+        newL = l.left;
     }
-    if (r >= l.left)
+    else if (r.left > l.left)
     {
-        // l.left, r, l.right
-        // Includes negative infinity case
-        return Range(l.left, r);
+        newL = l.left;
     }
-    // r, l.left, l.right, impossible case
-    return Range(0, 0, false, true);
+    else
+    {
+        if (l.left > r.right)
+        {
+            // impossible case
+            return Range(0, 0, false, true);
+        }
+        else
+        {
+            newL = l.left;
+        }
+    }
+
+    int newR;
+
+    if (l.right == r.right)
+    {
+        newR = l.right;
+    }
+    else if (l.right < r.right)
+    {
+        newR = l.right;
+    }
+    else
+    {
+        if (r.right < l.left)
+        {
+            return Range(0, 0, false, true);
+        }
+        else
+        {
+            newR = r.right;
+        }
+    }
+    return Range(newL, newR);
 }
 
 Range narrow_eq(Range l, Range r)
