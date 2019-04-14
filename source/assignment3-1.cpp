@@ -634,7 +634,7 @@ void print(const ValueAnalysis valueAnalysis)
     {
         string variable = row.first;
         Range variableRange = row.second;
-        outs() << "\t" << variable << " : " << label(variableRange) << "\n";
+        outs() << "\t" << variable << "\t : " << label(variableRange) << "\n";
     }
 }
 
@@ -713,10 +713,7 @@ string get_load_store_label(Value &v)
     }
     else
     {
-        // Load inst
-        Value *storeInstVal = I.getOperand(0);
-        Instruction *storeInst = cast<Instruction>(storeInstVal);
-        return label(storeInst->getOperand(1));
+        return label(I.getOperand(0));
     }
 }
 
@@ -946,9 +943,65 @@ ValueAnalysis widen_pred_cond(ValueAnalysis predAnalysis, BasicBlock *predecesso
     return result;
 }
 
-ValueAnalysis widen_generate(BasicBlock *BB, ValueAnalysis predecessorAnalysis)
+ValueAnalysis widen_generate(BasicBlock *BB, ValueAnalysis predecessorAnalysis, ValueAnalysis previousRoundAnalysis)
 {
-    ValueAnalysis result;
+    ValueAnalysis result = ValueAnalysis(predecessorAnalysis);
+    ValueAnalysis temp = ValueAnalysis(predecessorAnalysis); // Storing % stuff
+
+    for (auto &I : *BB)
+    {
+        if (isa<AllocaInst>(I))
+        {
+            result[label(&I)] = widen_all();
+            temp[label(&I)] = widen_all();
+        }
+        else if (isa<StoreInst>(I))
+        {
+            Value *op1 = I.getOperand(0);
+            Value *op2 = I.getOperand(1);
+
+            Range lRange;
+
+            if (isa<ConstantInt>(op1))
+            {
+                ConstantInt *CI = dyn_cast<ConstantInt>(op1);
+                int op1Int = CI->getSExtValue();
+
+                lRange = widen_str(op1Int);
+            }
+            else if (temp.find(label(op1)) != temp.end())
+            {
+                lRange = widen_str(temp[label(op1)]);
+            }
+            else
+            {
+                lRange = widen_all();
+            }
+
+            result[label(op2)] = lRange;
+            temp[label(op2)] = lRange;
+        }
+        else if (isa<LoadInst>(I))
+        {
+            // result[label(&I)] = processLoad(&I, analysis);
+        }
+        else if (I.getOpcode() == BinaryOperator::SDiv)
+        {
+            // result[label(&I)] = processDiv(&I, analysis);
+        }
+        else if (I.getOpcode() == BinaryOperator::Mul)
+        {
+            // result[label(&I)] = processMul(&I, analysis);
+        }
+        else if (I.getOpcode() == BinaryOperator::Add || I.getOpcode() == BinaryOperator::Sub)
+        {
+            // result[label(&I)] = processAddSub(&I, analysis);
+        }
+        else if (I.getOpcode() == BinaryOperator::SRem)
+        {
+            // result[label(&I)] = processRem(&I, analysis);
+        }
+    }
 
     return result;
 }
@@ -966,11 +1019,11 @@ void widen_generate(Function *F)
             predUnion = widen_combine(predUnion, predSet);
         }
 
-        ValueAnalysis BBAnalysis = widen_generate(&BB, predUnion);
         ValueAnalysis OldBBAnalysis = wideValueAnalysisMap[BB.getName()];
+        ValueAnalysis BBAnalysis = widen_generate(&BB, predUnion, OldBBAnalysis);
         if (OldBBAnalysis != BBAnalysis)
         {
-            wideValueAnalysisMap[BB.getName()] = widen_combine(BBAnalysis, OldBBAnalysis);
+            wideValueAnalysisMap[BB.getName()] = BBAnalysis;
         }
     }
 }
@@ -1224,7 +1277,7 @@ ValueAnalysis narrow_pred_cond(ValueAnalysis predAnalysis, BasicBlock *predecess
     return result;
 }
 
-ValueAnalysis narrow_generate(BasicBlock *BB, ValueAnalysis predecessorAnalysis)
+ValueAnalysis narrow_generate(BasicBlock *BB, ValueAnalysis predecessorAnalysis, ValueAnalysis previousRoundAnalysis)
 {
     ValueAnalysis result;
 
@@ -1244,11 +1297,11 @@ void narrow_generate(Function *F)
             predUnion = narrow_combine(predUnion, predSet);
         }
 
-        ValueAnalysis BBAnalysis = narrow_generate(&BB, predUnion);
         ValueAnalysis OldBBAnalysis = narrowValueAnalysisMap[BB.getName()];
+        ValueAnalysis BBAnalysis = narrow_generate(&BB, predUnion, OldBBAnalysis);
         if (OldBBAnalysis != BBAnalysis)
         {
-            narrowValueAnalysisMap[BB.getName()] = narrow_combine(BBAnalysis, OldBBAnalysis);
+            narrowValueAnalysisMap[BB.getName()] = BBAnalysis;
         }
     }
 }
