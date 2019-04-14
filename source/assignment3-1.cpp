@@ -517,14 +517,35 @@ Range narrow_le(Range l, Range r)
 
 Range narrow_eq(Range l, Range r)
 {
-    if (l.left <= r && l.right >= r)
+    int newL;
+
+    if (l.left <= r.left)
     {
-        return Range(r);
+        newL = r.left;
     }
     else
     {
+        newL = l.left;
+    }
+
+    int newR;
+
+    if (l.right <= r.right)
+    {
+        newR = l.right;
+    }
+    else
+    {
+        newR = r.right;
+    }
+
+    if (newL > newR)
+    {
+        // impossible case
         return Range(0, 0, false, true);
     }
+
+    return Range(newL, newR);
 }
 
 ValueAnalysis narrow_combine(ValueAnalysis left, ValueAnalysis right)
@@ -938,14 +959,15 @@ ValueAnalysis widen_pred_cond_branch(ValueAnalysis predAnalysis, Instruction &in
     // For use in switch cases
     string lLabel;
     Range lRange;
-    int rConstant;
+    Range rRange;
 
     // Assumption here is either left or right operand must be a constant
     bool reverseOperation = false;
     if (isa<Constant>(rightOperand))
     {
         ConstantInt *CI = dyn_cast<ConstantInt>(rightOperand);
-        rConstant = CI->getSExtValue();
+        int rConstant = CI->getSExtValue();
+        rRange = widen_str(rConstant);
 
         lLabel = get_load_store_label(*leftOperand);
         lRange = predAnalysis[lLabel];
@@ -956,10 +978,11 @@ ValueAnalysis widen_pred_cond_branch(ValueAnalysis predAnalysis, Instruction &in
             reverseOperation = true;
         }
     }
-    else
+    else if (isa<Constant>(leftOperand))
     {
         ConstantInt *CI = dyn_cast<ConstantInt>(leftOperand);
-        rConstant = CI->getSExtValue();
+        int rConstant = CI->getSExtValue();
+        rRange = widen_str(rConstant);
 
         lLabel = get_load_store_label(*rightOperand);
         lRange = predAnalysis[lLabel];
@@ -967,6 +990,20 @@ ValueAnalysis widen_pred_cond_branch(ValueAnalysis predAnalysis, Instruction &in
         if (cmpResult)
         {
             // Left side constant, true result
+            reverseOperation = true;
+        }
+    }
+    else
+    {
+        string rLabel = get_load_store_label(*rightOperand);
+        rRange = predAnalysis[rLabel];
+
+        lLabel = get_load_store_label(*leftOperand);
+        lRange = predAnalysis[lLabel];
+
+        if (!cmpResult)
+        {
+            // Test against left side
             reverseOperation = true;
         }
     }
@@ -979,11 +1016,11 @@ ValueAnalysis widen_pred_cond_branch(ValueAnalysis predAnalysis, Instruction &in
     {
         if (reverseOperation)
         {
-            result[lLabel] = widen_lt(lRange, rConstant);
+            result[lLabel] = widen_lt(lRange, rRange);
         }
         else
         {
-            result[lLabel] = widen_ge(lRange, rConstant);
+            result[lLabel] = widen_ge(lRange, rRange);
         }
         break;
     }
@@ -991,11 +1028,11 @@ ValueAnalysis widen_pred_cond_branch(ValueAnalysis predAnalysis, Instruction &in
     {
         if (reverseOperation)
         {
-            result[lLabel] = widen_le(lRange, rConstant);
+            result[lLabel] = widen_le(lRange, rRange);
         }
         else
         {
-            result[lLabel] = widen_gt(lRange, rConstant);
+            result[lLabel] = widen_gt(lRange, rRange);
         }
         break;
     }
@@ -1003,11 +1040,11 @@ ValueAnalysis widen_pred_cond_branch(ValueAnalysis predAnalysis, Instruction &in
     {
         if (reverseOperation)
         {
-            result[lLabel] = widen_gt(lRange, rConstant);
+            result[lLabel] = widen_gt(lRange, rRange);
         }
         else
         {
-            result[lLabel] = widen_le(lRange, rConstant);
+            result[lLabel] = widen_le(lRange, rRange);
         }
         break;
     }
@@ -1015,17 +1052,17 @@ ValueAnalysis widen_pred_cond_branch(ValueAnalysis predAnalysis, Instruction &in
     {
         if (reverseOperation)
         {
-            result[lLabel] = widen_ge(lRange, rConstant);
+            result[lLabel] = widen_ge(lRange, rRange);
         }
         else
         {
-            result[lLabel] = widen_lt(lRange, rConstant);
+            result[lLabel] = widen_lt(lRange, rRange);
         }
         break;
     }
     case CmpInst::ICMP_EQ:
     {
-        result[lLabel] = widen_eq(lRange, rConstant);
+        result[lLabel] = widen_eq(lRange, rRange);
         break;
     }
     default:
@@ -1215,54 +1252,6 @@ void widen(Function *F)
 
 #pragma region Narrow Flow
 
-void narrow_flow(BasicBlock *BB, ValueAnalysis entrySet)
-{
-    const TerminatorInst *TInst = BB->getTerminator();
-    unsigned NSucc = TInst->getNumSuccessors();
-
-    unsigned originalCount = 0;
-    bool traversed = false;
-
-    string bblabel = label(BB);
-
-    if (narrowValueAnalysisMap.count(bblabel) == 0)
-    {
-        // Initialize
-        ValueAnalysis empty;
-        narrowValueAnalysisMap[bblabel] = empty;
-    }
-    else
-    {
-        originalCount = narrowValueAnalysisMap[bblabel].size();
-        traversed = true;
-    }
-
-    ValueAnalysis generated;
-    ValueAnalysis exitSet;
-    // set<string> generated = generate(BB, entrySet);
-    // set<string> exitSet = combine(analysisMap[bblabel], generated);
-
-    narrowValueAnalysisMap[bblabel] = exitSet;
-
-    if (NSucc == 0)
-    {
-        return;
-    }
-
-    unsigned finalCount = exitSet.size();
-
-    if (traversed && originalCount == finalCount)
-    {
-        return;
-    }
-
-    for (unsigned i = 0; i < NSucc; i++)
-    {
-        BasicBlock *Succ = TInst->getSuccessor(i);
-        narrow_flow(Succ, exitSet);
-    }
-}
-
 ValueAnalysis narrow_pred_cond_branch(ValueAnalysis predAnalysis, Instruction &inst, BasicBlock *current)
 {
     ValueAnalysis result = ValueAnalysis(predAnalysis);
@@ -1296,14 +1285,15 @@ ValueAnalysis narrow_pred_cond_branch(ValueAnalysis predAnalysis, Instruction &i
     // For use in switch cases
     string lLabel;
     Range lRange;
-    int rConstant;
+    Range rRange;
 
     // Assumption here is either left or right operand must be a constant
     bool reverseOperation = false;
     if (isa<Constant>(rightOperand))
     {
         ConstantInt *CI = dyn_cast<ConstantInt>(rightOperand);
-        rConstant = CI->getSExtValue();
+        int rConstant = CI->getSExtValue();
+        rRange = narrow_str(rConstant);
 
         lLabel = get_load_store_label(*leftOperand);
         lRange = predAnalysis[lLabel];
@@ -1314,10 +1304,11 @@ ValueAnalysis narrow_pred_cond_branch(ValueAnalysis predAnalysis, Instruction &i
             reverseOperation = true;
         }
     }
-    else
+    else if (isa<Constant>(leftOperand))
     {
         ConstantInt *CI = dyn_cast<ConstantInt>(leftOperand);
-        rConstant = CI->getSExtValue();
+        int rConstant = CI->getSExtValue();
+        rRange = narrow_str(rConstant);
 
         lLabel = get_load_store_label(*rightOperand);
         lRange = predAnalysis[lLabel];
@@ -1325,6 +1316,19 @@ ValueAnalysis narrow_pred_cond_branch(ValueAnalysis predAnalysis, Instruction &i
         if (cmpResult)
         {
             // Left side constant, true result
+            reverseOperation = true;
+        }
+    }
+    else{
+        string rLabel = get_load_store_label(*rightOperand);
+        rRange = predAnalysis[rLabel];
+
+        lLabel = get_load_store_label(*leftOperand);
+        lRange = predAnalysis[lLabel];
+
+        if (!cmpResult)
+        {
+            // Test against left side
             reverseOperation = true;
         }
     }
@@ -1337,11 +1341,11 @@ ValueAnalysis narrow_pred_cond_branch(ValueAnalysis predAnalysis, Instruction &i
     {
         if (reverseOperation)
         {
-            result[lLabel] = narrow_lt(lRange, rConstant);
+            result[lLabel] = narrow_lt(lRange, rRange);
         }
         else
         {
-            result[lLabel] = narrow_ge(lRange, rConstant);
+            result[lLabel] = narrow_ge(lRange, rRange);
         }
         break;
     }
@@ -1349,11 +1353,11 @@ ValueAnalysis narrow_pred_cond_branch(ValueAnalysis predAnalysis, Instruction &i
     {
         if (reverseOperation)
         {
-            result[lLabel] = narrow_le(lRange, rConstant);
+            result[lLabel] = narrow_le(lRange, rRange);
         }
         else
         {
-            result[lLabel] = narrow_gt(lRange, rConstant);
+            result[lLabel] = narrow_gt(lRange, rRange);
         }
         break;
     }
@@ -1361,11 +1365,11 @@ ValueAnalysis narrow_pred_cond_branch(ValueAnalysis predAnalysis, Instruction &i
     {
         if (reverseOperation)
         {
-            result[lLabel] = narrow_gt(lRange, rConstant);
+            result[lLabel] = narrow_gt(lRange, rRange);
         }
         else
         {
-            result[lLabel] = narrow_le(lRange, rConstant);
+            result[lLabel] = narrow_le(lRange, rRange);
         }
         break;
     }
@@ -1373,17 +1377,17 @@ ValueAnalysis narrow_pred_cond_branch(ValueAnalysis predAnalysis, Instruction &i
     {
         if (reverseOperation)
         {
-            result[lLabel] = narrow_ge(lRange, rConstant);
+            result[lLabel] = narrow_ge(lRange, rRange);
         }
         else
         {
-            result[lLabel] = narrow_lt(lRange, rConstant);
+            result[lLabel] = narrow_lt(lRange, rRange);
         }
         break;
     }
     case CmpInst::ICMP_EQ:
     {
-        result[lLabel] = narrow_eq(lRange, rConstant);
+        result[lLabel] = narrow_eq(lRange, rRange);
         break;
     }
     default:
