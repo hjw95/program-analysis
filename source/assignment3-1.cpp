@@ -1319,7 +1319,8 @@ ValueAnalysis narrow_pred_cond_branch(ValueAnalysis predAnalysis, Instruction &i
             reverseOperation = true;
         }
     }
-    else{
+    else
+    {
         string rLabel = get_load_store_label(*rightOperand);
         rRange = predAnalysis[rLabel];
 
