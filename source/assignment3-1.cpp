@@ -287,66 +287,179 @@ Range narrow_combine(Range l, Range r)
 }
 
 // Retrieves the range for l in case of true = l gt r
-Range narrow_gt(Range l, int r)
+Range narrow_gt(Range l, Range r)
 {
-    if (r < l.left)
+    int newL;
+
+    if (r.left == l.left)
     {
-        // r, l.left, l.right
-        return Range(l);
+        if (r.left >= l.right)
+        {
+            // impossible case
+            return Range(0, 0, false, true);
+        }
+        else
+        {
+            newL = r.left + 1;
+        }
     }
-    if (r < l.right)
+    else if (r.left < l.left)
     {
-        // l.left, r, l.right
-        return Range(r + 1, l.right);
+        newL = l.left;
     }
-    if (l.right == 1000 && r == 1000)
+    else
     {
-        // Positive infinity range
-        return Range(1000, 1000);
+        if (r.left >= l.right)
+        {
+            //impossible case
+            return Range(0, 0, false, true);
+        }
+        else
+        {
+            newL = r.left + 1;
+        }
     }
-    // l.left, l.right, r, impossible case
-    return Range(0, 0, false, true);
+
+    int newR;
+
+    if (l.right == r.right)
+    {
+        if (l.right <= r.left)
+        {
+            // impossible case
+            return Range(0, 0, false, true);
+        }
+        else
+        {
+            newR = l.right;
+        }
+    }
+    else if (l.right > r.right)
+    {
+        newR = l.right;
+    }
+    else
+    {
+        if (l.right <= r.left)
+        {
+            return Range(0, 0, false, true);
+        }
+        else
+        {
+            newR = l.right;
+        }
+    }
+    return Range(newL, newR);
 }
 
-Range narrow_ge(Range l, int r)
+Range narrow_ge(Range l, Range r)
 {
-    if (r <= l.left)
+    int newL;
+
+    if (r.left == l.left)
     {
-        // r, l.left, l.right
-        return Range(l);
+        newL = l.left;
     }
-    if (r <= l.right)
+    else if (r.left < l.left)
     {
-        // l.left, r, l.right
-        // Includes positive infinity range
-        return Range(r, l.right);
+        newL = l.left;
     }
-    // l.left, l.right, r, impossible case
-    return Range(0, 0, false, true);
+    else
+    {
+        if (r.left > l.right)
+        {
+            //impossible case
+            return Range(0, 0, false, true);
+        }
+        else
+        {
+            newL = r.left;
+        }
+    }
+
+    int newR;
+
+    if (l.right == r.right)
+    {
+        newR = l.right;
+    }
+    else if (l.right > r.right)
+    {
+        newR = l.right;
+    }
+    else
+    {
+        if (l.right < r.left)
+        {
+            return Range(0, 0, false, true);
+        }
+        else
+        {
+            newR = l.right;
+        }
+    }
+    return Range(newL, newR);
 }
 
-Range narrow_lt(Range l, int r)
+Range narrow_lt(Range l, Range r)
 {
-    if (r > l.right)
+    int newL;
+
+    if (r.left == l.left)
     {
-        // l.left, l.right, r
-        return Range(l);
+        if (l.left >= r.right)
+        {
+            // impossible case
+            return Range(0, 0, false, true);
+        }
+        else
+        {
+            newL = l.left;
+        }
     }
-    if (r > l.left)
+    else if (r.left > l.left)
     {
-        // l.left, r, l.right
-        return Range(l.left, r - 1);
+        newL = l.left;
     }
-    if (l.left == -1000 && r == -1000)
+    else
     {
-        // Negative infinity range
-        return Range(-1000, -1000);
+        if (l.left >= r.right)
+        {
+            // impossible case
+            return Range(0, 0, false, true);
+        }
+        else
+        {
+            newL = l.left;
+        }
     }
-    // r, l.left, l.right, impossible case
-    return Range(0, 0, false, true);
+
+    int newR;
+
+    if (l.right == r.right)
+    {
+        // impossible case
+        return Range(0, 0, false, true);
+    }
+    else if (l.right > r.right)
+    {
+        newR = l.right;
+    }
+    else
+    {
+        if (l.right <= r.left)
+        {
+            return Range(0, 0, false, true);
+        }
+        else
+        {
+            newR = l.right;
+        }
+    }
+    return Range(newL, newR);
 }
 
-Range narrow_le(Range l, int r)
+Range narrow_le(Range l, Range r)
 {
     if (r >= l.right)
     {
@@ -363,7 +476,7 @@ Range narrow_le(Range l, int r)
     return Range(0, 0, false, true);
 }
 
-Range narrow_eq(Range l, int r)
+Range narrow_eq(Range l, Range r)
 {
     if (l.left <= r && l.right >= r)
     {
@@ -545,27 +658,27 @@ Range widen_combine(Range l, Range r)
     return widen_str(narrow_combine(l, r));
 }
 
-Range widen_gt(Range l, int r)
+Range widen_gt(Range l, Range r)
 {
     return widen_str(narrow_gt(l, r));
 }
 
-Range widen_ge(Range l, int r)
+Range widen_ge(Range l, Range r)
 {
     return widen_str(narrow_ge(l, r));
 }
 
-Range widen_lt(Range l, int r)
+Range widen_lt(Range l, Range r)
 {
     return widen_str(narrow_lt(l, r));
 }
 
-Range widen_le(Range l, int r)
+Range widen_le(Range l, Range r)
 {
     return widen_str(narrow_le(l, r));
 }
 
-Range widen_eq(Range l, int r)
+Range widen_eq(Range l, Range r)
 {
     return widen_str(narrow_eq(l, r));
 }
@@ -752,54 +865,6 @@ BasicBlock *findMain(unique_ptr<Module> *m)
 #pragma endregion
 
 #pragma region Widen Flow
-
-void widen_flow(BasicBlock *BB, ValueAnalysis entrySet)
-{
-    const TerminatorInst *TInst = BB->getTerminator();
-    unsigned NSucc = TInst->getNumSuccessors();
-
-    unsigned originalCount = 0;
-    bool traversed = false;
-
-    string bblabel = label(BB);
-
-    if (wideValueAnalysisMap.count(bblabel) == 0)
-    {
-        // Initialize
-        ValueAnalysis empty;
-        wideValueAnalysisMap[bblabel] = empty;
-    }
-    else
-    {
-        originalCount = wideValueAnalysisMap[bblabel].size();
-        traversed = true;
-    }
-
-    ValueAnalysis generated;
-    ValueAnalysis exitSet;
-    // set<string> generated = generate(BB, entrySet);
-    // set<string> exitSet = combine(analysisMap[bblabel], generated);
-
-    wideValueAnalysisMap[bblabel] = exitSet;
-
-    if (NSucc == 0)
-    {
-        return;
-    }
-
-    unsigned finalCount = exitSet.size();
-
-    if (traversed && originalCount == finalCount)
-    {
-        return;
-    }
-
-    for (unsigned i = 0; i < NSucc; i++)
-    {
-        BasicBlock *Succ = TInst->getSuccessor(i);
-        widen_flow(Succ, exitSet);
-    }
-}
 
 ValueAnalysis widen_pred_cond_branch(ValueAnalysis predAnalysis, Instruction &inst, BasicBlock *current)
 {
