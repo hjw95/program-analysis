@@ -29,11 +29,14 @@ struct Range
 
     bool divisionByZero;
 
+    bool impossibleRange;
+
     Range()
     {
         left = 0;
         right = 0;
         divisionByZero = false;
+        impossibleRange = false;
     }
 
     Range(int v)
@@ -41,6 +44,7 @@ struct Range
         left = v;
         right = v;
         divisionByZero = false;
+        impossibleRange = false;
     }
 
     Range(int a, int b)
@@ -56,6 +60,7 @@ struct Range
             left = a;
         }
         divisionByZero = false;
+        impossibleRange = false;
     }
 
     Range(int a, int b, bool dz)
@@ -71,6 +76,23 @@ struct Range
             left = a;
         }
         divisionByZero = dz;
+        impossibleRange = false;
+    }
+
+    Range(int a, int b, bool dz, bool ir)
+    {
+        if (a > b)
+        {
+            right = a;
+            left = b;
+        }
+        else
+        {
+            right = b;
+            left = a;
+        }
+        divisionByZero = dz;
+        impossibleRange = ir;
     }
 
     Range(Range const &r)
@@ -78,6 +100,7 @@ struct Range
         left = r.left;
         right = r.right;
         divisionByZero = r.divisionByZero;
+        impossibleRange = r.impossibleRange;
     }
 
     bool operator==(Range r)
@@ -228,32 +251,17 @@ Range narrow_rem(Range l, Range r)
         divisionByZero = true;
     }
 
-    set<int> potentialValues;
+    // For remainder values, it will always only depend on r values, values are from 0 to r.right
+    // If there are negative values at either side, insert from -r.right to r.right
+    // If all values are negative then rem is only positive
 
-    if (r.left == 0)
-    {
-        // Take the values by itself as if rem by 1
-        potentialValues.insert(1);
-    }
-    else
-    {
-        potentialValues.insert(l.left % r.left);
-        potentialValues.insert(l.right % r.left);
-    }
+    int newL = 0;
+    int newR = r.right;
 
-    if (r.right == 0)
+    if ((l.left < 0 || r.left < 0) && (l.right >= 0 || r.right >= 0))
     {
-        // Take the values by itself as if rem by -1
-        potentialValues.insert(-1);
+        newL = -r.right;
     }
-    else
-    {
-        potentialValues.insert(l.left % r.right);
-        potentialValues.insert(l.right % r.right);
-    }
-
-    int newL = *potentialValues.begin();
-    int newR = *potentialValues.rbegin();
 
     return Range(newL, newR, divisionByZero);
 }
@@ -271,6 +279,88 @@ Range narrow_combine(Range l, Range r)
     int newR = *potentialValues.rbegin();
 
     return Range(newL, newR);
+}
+
+// Retrieves the range for l in case of true = l < r
+// gtn -> greater than
+// gte -> greater than equal to
+// ltn -> less than
+// lte -> less than equal to
+
+Range narrow_gtn(Range l, int r)
+{
+    if (r < l.left)
+    {
+        // r, l.left, l.right
+        return Range(l);
+    }
+    if (r < l.right)
+    {
+        // l.left, r, l.right
+        return Range(r + 1, l.right);
+    }
+    if (l.right == 1000 && r == 1000)
+    {
+        // Positive infinity range
+        return Range(1000, 1000);
+    }
+    // l.left, l.right, r, impossible case
+    return Range(0, 0, false, true);
+}
+
+Range narrow_gte(Range l, int r)
+{
+    if (r <= l.left)
+    {
+        // r, l.left, l.right
+        return Range(l);
+    }
+    if (r <= l.right)
+    {
+        // l.left, r, l.right
+        // Includes positive infinity range
+        return Range(r, l.right);
+    }
+    // l.left, l.right, r, impossible case
+    return Range(0, 0, false, true);
+}
+
+Range narrow_ltn(Range l, int r)
+{
+    if (r > l.right)
+    {
+        // l.left, l.right, r
+        return Range(l);
+    }
+    if (r > l.left)
+    {
+        // l.left, r, l.right
+        return Range(l.left, r - 1);
+    }
+    if (l.left == -1000 && r == -1000)
+    {
+        // Negative infinity range
+        return Range(-1000, -1000);
+    }
+    // r, l.left, l.right, impossible case
+    return Range(0, 0, false, true);
+}
+
+Range narrow_lte(Range l, int r)
+{
+    if (r >= l.right)
+    {
+        // l.left, l.right, r
+        return Range(l);
+    }
+    if (r >= l.left)
+    {
+        // l.left, r, l.right
+        // Includes negative infinity case
+        return Range(l.left, r);
+    }
+    // r, l.left, l.right, impossible case
+    return Range(0, 0, false, true);
 }
 
 ValueAnalysis narrow_combine(ValueAnalysis left, ValueAnalysis right)
@@ -396,6 +486,26 @@ Range widen_rem(Range l, Range r)
 Range widen_combine(Range l, Range r)
 {
     return widen_str(narrow_combine(l, r));
+}
+
+Range widen_gtn(Range l, int r)
+{
+    return widen_str(narrow_gtn(l, r));
+}
+
+Range widen_gte(Range l, int r)
+{
+    return widen_str(narrow_gte(l, r));
+}
+
+Range widen_ltn(Range l, int r)
+{
+    return widen_str(narrow_ltn(l, r));
+}
+
+Range widen_lte(Range l, int r)
+{
+    return widen_str(narrow_lte(l, r));
 }
 
 ValueAnalysis widen_combine(ValueAnalysis left, ValueAnalysis right)
