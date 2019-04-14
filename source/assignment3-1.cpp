@@ -616,10 +616,51 @@ void widen_flow(BasicBlock *BB, ValueAnalysis entrySet)
     }
 }
 
+bool widen_pred_cond_branch(Instruction &inst, BasicBlock *current)
+{
+    BranchInst *br = dyn_cast<BranchInst>(&inst);
+
+    int numOperands = br->getNumOperands();
+    if (numOperands == 1)
+    {
+        // if end case
+        return true;
+    }
+
+    // other cases will have 3 operands
+
+    CmpInst &compareInst = cast<CmpInst>(*(br->getOperand(0)));
+
+    print(&compareInst);
+    bool cmpResult = false;
+
+    if (current == br->getOperand(2))
+    {
+        // if then
+        cmpResult = true;
+    }
+    if (current == br->getOperand(1))
+    {
+        // if else
+        cmpResult = false;
+    }
+
+    // should not hit this
+    return cmpResult;
+}
+
 ValueAnalysis widen_pred_cond(ValueAnalysis predAnalysis, BasicBlock *predecessor, BasicBlock *current)
 {
     ValueAnalysis result;
+    for (auto rit = predecessor->rbegin(), ritend = predecessor->rend(); rit != ritend; ++rit)
+    {
+        Instruction &inst = *rit;
 
+        if (isa<BranchInst>(inst))
+        {
+            bool compareResult = widen_pred_cond_branch(inst, current);
+        }
+    }
     return result;
 }
 
@@ -698,8 +739,6 @@ void widen(Function *F)
 
         outs() << "Round:" << i++ << "\n";
         print(wideValueAnalysisMap);
-        llvm::errs() << "\n";
-        llvm::errs() << "\n";
         llvm::errs() << "\n";
     }
 }
@@ -839,8 +878,6 @@ void narrow(Function *F)
         outs() << "Round:" << i++ << "\n";
         print(narrowValueAnalysisMap);
         llvm::errs() << "\n";
-        llvm::errs() << "\n";
-        llvm::errs() << "\n";
     }
 }
 
@@ -862,10 +899,10 @@ int main(int argc, char **argv)
     Function *F = init(&M);
 
     widen(F);
-    print(wideValueAnalysisMap);
+    // print(wideValueAnalysisMap);
 
     narrow(F);
-    print(narrowValueAnalysisMap);
+    // print(narrowValueAnalysisMap);
 
     return 0;
 }
