@@ -4,4 +4,4 @@ set -e
 
 clang++-7 -o bin/assignment3-1 source/assignment3-1.cpp `llvm-config-7 --cxxflags` `llvm-config-7 --ldflags` `llvm-config-7 --libs` -lpthread -lncurses -ldl -Wno-unknown-warning-option
 
-./bin/assignment3-1 llvms/assignment3-example1.ll
+./bin/assignment3-1 llvms/assignment3-example2.ll

@@ -45,6 +45,7 @@ struct Range
         right = v;
         divisionByZero = false;
         impossibleRange = false;
+        range_sanity();
     }
 
     Range(int a, int b)
@@ -61,6 +62,7 @@ struct Range
         }
         divisionByZero = false;
         impossibleRange = false;
+        range_sanity();
     }
 
     Range(int a, int b, bool dz)
@@ -77,6 +79,7 @@ struct Range
         }
         divisionByZero = dz;
         impossibleRange = false;
+        range_sanity();
     }
 
     Range(int a, int b, bool dz, bool ir)
@@ -93,6 +96,7 @@ struct Range
         }
         divisionByZero = dz;
         impossibleRange = ir;
+        range_sanity();
     }
 
     Range(Range const &r)
@@ -101,6 +105,7 @@ struct Range
         right = r.right;
         divisionByZero = r.divisionByZero;
         impossibleRange = r.impossibleRange;
+        range_sanity();
     }
 
     bool operator==(Range r)
@@ -111,6 +116,19 @@ struct Range
     bool operator!=(Range r)
     {
         return (left != r.left) || (right != r.right);
+    }
+
+    void range_sanity()
+    {
+        if (left < -1000)
+        {
+            left = -1000;
+        }
+
+        if (right > 1000)
+        {
+            right = 1000;
+        }
     }
 };
 
@@ -134,6 +152,11 @@ map<string, ValueAnalysis> narrowValueAnalysisMap;
 
 // Basic block to range for diff analysis, populated during narrowing
 map<string, Range> diffAnalysisMap;
+
+int narrowing_count = 0;
+int widening_count = 0;
+
+bool print_steps = true;
 
 #pragma endregion
 
@@ -261,11 +284,27 @@ Range narrow_rem(Range l, Range r)
     // If all values are negative then rem is only positive
 
     int newL = 0;
-    int newR = r.right;
+    int newR = 0;
 
-    if ((l.left < 0 || r.left < 0) && (l.right >= 0 || r.right >= 0))
+    if (r.right >= 0)
     {
-        newL = -r.right;
+        newL = 0;
+        newR = r.right - 1;
+
+        if (l.left < 0)
+        {
+            newL = -r.right + 1;
+        }
+    }
+    else
+    {
+        newL = r.right + 1;
+        newR = 0;
+
+        if (l.right > 0)
+        {
+            newR = (-r.right) - 1;
+        }
     }
 
     return Range(newL, newR, divisionByZero);
@@ -896,6 +935,12 @@ string get_load_store_label(Value &v)
     }
 }
 
+int get_const_value(Value &v)
+{
+    llvm::ConstantInt *CI = dyn_cast<ConstantInt>(&v);
+    return CI->getSExtValue();
+}
+
 Function *init(unique_ptr<Module> *m)
 {
     Function *F = (*m)->getFunction("main");
@@ -1090,6 +1135,48 @@ ValueAnalysis widen_pred_cond(ValueAnalysis predAnalysis, BasicBlock *predecesso
     return result;
 }
 
+map<string, Range> widen_get_operand_ranges(Instruction &I, ValueAnalysis temp)
+{
+
+    Value *op1 = I.getOperand(0);
+    Value *op2 = I.getOperand(1);
+
+    Range lRange, rRange;
+
+    if (isa<ConstantInt>(op1))
+    {
+        lRange = widen_str(get_const_value(*op1));
+    }
+    else if (temp.find(label(op1)) != temp.end())
+    {
+        lRange = widen_str(temp[label(op1)]);
+    }
+    else
+    {
+        lRange = widen_all();
+    }
+
+    if (isa<ConstantInt>(op2))
+    {
+        rRange = widen_str(get_const_value(*op2));
+    }
+    else if (temp.find(label(op2)) != temp.end())
+    {
+        rRange = widen_str(temp[label(op2)]);
+    }
+    else
+    {
+        rRange = widen_all();
+    }
+
+    map<string, Range> result;
+
+    result["left"] = lRange;
+    result["right"] = rRange;
+
+    return result;
+}
+
 ValueAnalysis widen_generate(BasicBlock *BB, ValueAnalysis predecessorAnalysis, ValueAnalysis previousRoundAnalysis)
 {
     ValueAnalysis result = ValueAnalysis(predecessorAnalysis);
@@ -1097,11 +1184,19 @@ ValueAnalysis widen_generate(BasicBlock *BB, ValueAnalysis predecessorAnalysis, 
 
     for (auto &I : *BB)
     {
-        print(&I);
         if (isa<AllocaInst>(I))
         {
-            result[label(&I)] = widen_all();
-            temp[label(&I)] = widen_all();
+            if (previousRoundAnalysis.find(label(&I)) != previousRoundAnalysis.end())
+            {
+
+                result[label(&I)] = previousRoundAnalysis[label(&I)];
+                temp[label(&I)] = previousRoundAnalysis[label(&I)];
+            }
+            else
+            {
+                result[label(&I)] = widen_all();
+                temp[label(&I)] = widen_all();
+            }
         }
         else if (isa<StoreInst>(I))
         {
@@ -1112,10 +1207,7 @@ ValueAnalysis widen_generate(BasicBlock *BB, ValueAnalysis predecessorAnalysis, 
 
             if (isa<ConstantInt>(op1))
             {
-                ConstantInt *CI = dyn_cast<ConstantInt>(op1);
-                int op1Int = CI->getSExtValue();
-
-                lRange = widen_str(op1Int);
+                lRange = widen_str(get_const_value(*op1));
             }
             else if (temp.find(label(op1)) != temp.end())
             {
@@ -1137,10 +1229,7 @@ ValueAnalysis widen_generate(BasicBlock *BB, ValueAnalysis predecessorAnalysis, 
 
             if (isa<ConstantInt>(op1))
             {
-                llvm::ConstantInt *CI = dyn_cast<ConstantInt>(op1);
-                int op1Int = CI->getSExtValue();
-
-                lRange = widen_str(op1Int);
+                lRange = widen_str(get_const_value(*op1));
             }
             else if (temp.find(label(op1)) != temp.end())
             {
@@ -1154,23 +1243,28 @@ ValueAnalysis widen_generate(BasicBlock *BB, ValueAnalysis predecessorAnalysis, 
         }
         else if (I.getOpcode() == BinaryOperator::SDiv)
         {
-            // result[label(&I)] = processDiv(&I, analysis);
+            map<string, Range> ops = widen_get_operand_ranges(I, temp);
+            temp[label(&I)] = widen_div(ops["left"], ops["right"]);
         }
         else if (I.getOpcode() == BinaryOperator::Mul)
         {
-            // result[label(&I)] = processMul(&I, analysis);
+            map<string, Range> ops = widen_get_operand_ranges(I, temp);
+            temp[label(&I)] = widen_mul(ops["left"], ops["right"]);
         }
         else if (I.getOpcode() == BinaryOperator::Add)
         {
-            // result[label(&I)] = processAddSub(&I, analysis);
+            map<string, Range> ops = widen_get_operand_ranges(I, temp);
+            temp[label(&I)] = widen_add(ops["left"], ops["right"]);
         }
         else if (I.getOpcode() == BinaryOperator::Sub)
         {
-            // result[label(&I)] = processAddSub(&I, analysis);
+            map<string, Range> ops = widen_get_operand_ranges(I, temp);
+            temp[label(&I)] = widen_sub(ops["left"], ops["right"]);
         }
         else if (I.getOpcode() == BinaryOperator::SRem)
         {
-            // result[label(&I)] = processRem(&I, analysis);
+            map<string, Range> ops = widen_get_operand_ranges(I, temp);
+            temp[label(&I)] = widen_rem(ops["left"], ops["right"]);
         }
     }
 
@@ -1235,7 +1329,6 @@ void widen(Function *F)
     map<string, ValueAnalysis> oldAnalysisMap;
 
     // Fixpoint Loop
-    int i = 0;
     while (!widen_fixed_point(oldAnalysisMap))
     {
         oldAnalysisMap.clear();
@@ -1243,9 +1336,12 @@ void widen(Function *F)
 
         widen_generate(F);
 
-        outs() << "Round:" << i++ << "\n";
-        print(wideValueAnalysisMap);
-        llvm::errs() << "\n";
+        if (print_steps)
+        {
+            outs() << "Round:" << widening_count++ << "\n";
+            print(wideValueAnalysisMap);
+            llvm::errs() << "\n";
+        }
     }
 }
 
@@ -1416,6 +1512,47 @@ ValueAnalysis narrow_pred_cond(ValueAnalysis predAnalysis, BasicBlock *predecess
     return result;
 }
 
+map<string, Range> narrow_get_operand_ranges(Instruction &I, ValueAnalysis temp)
+{
+    Value *op1 = I.getOperand(0);
+    Value *op2 = I.getOperand(1);
+
+    Range lRange, rRange;
+
+    if (isa<ConstantInt>(op1))
+    {
+        lRange = narrow_str(get_const_value(*op1));
+    }
+    else if (temp.find(label(op1)) != temp.end())
+    {
+        lRange = narrow_str(temp[label(op1)]);
+    }
+    else
+    {
+        lRange = narrow_all();
+    }
+
+    if (isa<ConstantInt>(op2))
+    {
+        rRange = narrow_str(get_const_value(*op2));
+    }
+    else if (temp.find(label(op2)) != temp.end())
+    {
+        rRange = narrow_str(temp[label(op2)]);
+    }
+    else
+    {
+        rRange = narrow_all();
+    }
+
+    map<string, Range> result;
+
+    result["left"] = lRange;
+    result["right"] = rRange;
+
+    return result;
+}
+
 ValueAnalysis narrow_generate(BasicBlock *BB, ValueAnalysis predecessorAnalysis, ValueAnalysis previousRoundAnalysis)
 {
     ValueAnalysis result = ValueAnalysis(predecessorAnalysis);
@@ -1425,8 +1562,17 @@ ValueAnalysis narrow_generate(BasicBlock *BB, ValueAnalysis predecessorAnalysis,
     {
         if (isa<AllocaInst>(I))
         {
-            result[label(&I)] = narrow_all();
-            temp[label(&I)] = narrow_all();
+            if (previousRoundAnalysis.find(label(&I)) != previousRoundAnalysis.end())
+            {
+
+                result[label(&I)] = previousRoundAnalysis[label(&I)];
+                temp[label(&I)] = previousRoundAnalysis[label(&I)];
+            }
+            else
+            {
+                result[label(&I)] = narrow_all();
+                temp[label(&I)] = narrow_all();
+            }
         }
         else if (isa<StoreInst>(I))
         {
@@ -1437,10 +1583,7 @@ ValueAnalysis narrow_generate(BasicBlock *BB, ValueAnalysis predecessorAnalysis,
 
             if (isa<ConstantInt>(op1))
             {
-                ConstantInt *CI = dyn_cast<ConstantInt>(op1);
-                int op1Int = CI->getSExtValue();
-
-                lRange = narrow_str(op1Int);
+                lRange = narrow_str(get_const_value(*op1));
             }
             else if (temp.find(label(op1)) != temp.end())
             {
@@ -1462,10 +1605,7 @@ ValueAnalysis narrow_generate(BasicBlock *BB, ValueAnalysis predecessorAnalysis,
 
             if (isa<ConstantInt>(op1))
             {
-                llvm::ConstantInt *CI = dyn_cast<ConstantInt>(op1);
-                int op1Int = CI->getSExtValue();
-
-                lRange = narrow_str(op1Int);
+                lRange = narrow_str(get_const_value(*op1));
             }
             else if (temp.find(label(op1)) != temp.end())
             {
@@ -1479,23 +1619,28 @@ ValueAnalysis narrow_generate(BasicBlock *BB, ValueAnalysis predecessorAnalysis,
         }
         else if (I.getOpcode() == BinaryOperator::SDiv)
         {
-            // result[label(&I)] = processDiv(&I, analysis);
+            map<string, Range> ops = narrow_get_operand_ranges(I, temp);
+            temp[label(&I)] = narrow_div(ops["left"], ops["right"]);
         }
         else if (I.getOpcode() == BinaryOperator::Mul)
         {
-            // result[label(&I)] = processMul(&I, analysis);
+            map<string, Range> ops = narrow_get_operand_ranges(I, temp);
+            temp[label(&I)] = narrow_mul(ops["left"], ops["right"]);
         }
         else if (I.getOpcode() == BinaryOperator::Add)
         {
-            // result[label(&I)] = processAddSub(&I, analysis);
+            map<string, Range> ops = narrow_get_operand_ranges(I, temp);
+            temp[label(&I)] = narrow_add(ops["left"], ops["right"]);
         }
         else if (I.getOpcode() == BinaryOperator::Sub)
         {
-            // result[label(&I)] = processAddSub(&I, analysis);
+            map<string, Range> ops = narrow_get_operand_ranges(I, temp);
+            temp[label(&I)] = narrow_sub(ops["left"], ops["right"]);
         }
         else if (I.getOpcode() == BinaryOperator::SRem)
         {
-            // result[label(&I)] = processRem(&I, analysis);
+            map<string, Range> ops = narrow_get_operand_ranges(I, temp);
+            temp[label(&I)] = narrow_rem(ops["left"], ops["right"]);
         }
     }
 
@@ -1560,7 +1705,6 @@ void narrow(Function *F)
     map<string, ValueAnalysis> oldAnalysisMap;
 
     // Fixpoint Loop
-    int i = 0;
     while (!narrow_fixed_point(oldAnalysisMap))
     {
         oldAnalysisMap.clear();
@@ -1568,9 +1712,12 @@ void narrow(Function *F)
 
         narrow_generate(F);
 
-        outs() << "Round:" << i++ << "\n";
-        print(narrowValueAnalysisMap);
-        llvm::errs() << "\n";
+        if (print_steps)
+        {
+            outs() << "Round:" << narrowing_count++ << "\n";
+            print(narrowValueAnalysisMap);
+            llvm::errs() << "\n";
+        }
     }
 }
 
