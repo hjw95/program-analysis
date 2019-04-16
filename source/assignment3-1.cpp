@@ -150,13 +150,15 @@ map<string, ValueAnalysis> wideValueAnalysisMap;
 // Narrowing
 map<string, ValueAnalysis> narrowValueAnalysisMap;
 
-// Basic block to range for diff analysis, populated during narrowing
-map<string, Range> diffAnalysisMap;
+// Basic block to range for diff analysis
+map<string, map<string, int>> diffAnalysisMap;
 
 int narrowing_count = 0;
 int widening_count = 0;
 
 bool print_steps = true;
+
+bool print_infinity = false;
 
 #pragma endregion
 
@@ -853,6 +855,31 @@ void print(const ValueAnalysis valueAnalysis)
         string variable = row.first;
         Range variableRange = row.second;
         outs() << "\t" << variable << "\t : " << label(variableRange) << "\n";
+    }
+}
+
+void print(const map<string, int> valueAnalysis)
+{
+    for (auto &row : valueAnalysis)
+    {
+        string variable = row.first;
+        int variableRange = row.second;
+        if ((!print_infinity) && variableRange == 1000)
+        {
+            continue;
+        }
+        outs() << "\t" << variable << "\t : " << to_string(variableRange) << "\n";
+    }
+}
+
+void print(const map<string, map<string, int>> analysisMap)
+{
+    for (auto &row : analysisMap)
+    {
+        string blockLabel = row.first;
+        map<string, int> maxDiffAnalysis = row.second;
+        outs() << blockLabel << " : \n";
+        print(maxDiffAnalysis);
     }
 }
 
@@ -1723,6 +1750,53 @@ void narrow(Function *F)
 
 #pragma endregion
 
+#pragma region Max Difference
+
+void max_diff_analysis()
+{
+    for (auto it = narrowValueAnalysisMap.begin(); it != narrowValueAnalysisMap.end(); ++it)
+    {
+        string blockName = it->first;
+        ValueAnalysis valueAnalysis = it->second;
+
+        map<string, int> blockMap;
+        for (auto itLeft = valueAnalysis.begin(); itLeft != valueAnalysis.end(); ++itLeft)
+        {
+            if (itLeft->first == "retval")
+            {
+                continue;
+            }
+            for (auto itRight = valueAnalysis.rbegin(); itRight->first != itLeft->first; ++itRight)
+            {
+                if (itRight->first == "retval")
+                {
+                    continue;
+                }
+                if (itLeft->first == itRight->first)
+                {
+                    continue;
+                }
+                string label = itLeft->first + " - " + itRight->first;
+                if (itLeft->second.left == 1000 || itLeft->second.right == 1000 || itLeft->second.left == -1000 || itLeft->second.right == -1000)
+                {
+                    blockMap[label] = 1000;
+                }
+                else if (itRight->second.left == 1000 || itRight->second.right == 1000 || itRight->second.left == -1000 || itRight->second.right == -1000)
+                {
+                    blockMap[label] = 1000;
+                }
+                else
+                {
+                    blockMap[label] = itLeft->second.right - itRight->second.left;
+                }
+            }
+        }
+        diffAnalysisMap[blockName] = blockMap;
+    }
+}
+
+#pragma endregion
+
 int main(int argc, char **argv)
 {
     // Read the IR file.
@@ -1738,14 +1812,15 @@ int main(int argc, char **argv)
 
     Function *F = init(&M);
 
+    print_steps = false;
+    print_infinity = false;
+
     widen(F);
-    // print(wideValueAnalysisMap);
-
     narrowValueAnalysisMap = map<string, ValueAnalysis>(wideValueAnalysisMap);
-
     narrow(F);
     outs() << "\n====================================\n\n";
-    print(narrowValueAnalysisMap);
+    max_diff_analysis();
+    print(diffAnalysisMap);
 
     return 0;
 }
