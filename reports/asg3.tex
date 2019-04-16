@@ -3,6 +3,7 @@
 \usepackage{tabularx}
 \usepackage{amsmath}
 \usepackage{amssymb}
+\usepackage{url}
 
 \geometry{
    a4paper,
@@ -35,11 +36,14 @@
 \section{Design}
 
 Both task 1 and task 2 analysis are implemented on the basis of interval design, even though task 1 does not require completion of interval analysis.
-The ability of getting the maximum difference between two variables is a side effect of the result of interval analysis, which is more general analysis than maximum difference analysis.
+The ability of getting the maximum difference between two variables is a side effect of the result of interval analysis, which is a more general analysis than maximum difference analysis.
 
 The analysis is divided into two steps, widening first and then narrowing.
 In the implementation and analysis of result, any value that is -1000 represents negative infinity and any value that is 1000 represents positive infinity.
 All widening and narrowing handle of variable interval (Range in code) will check against this sanity, that is any value above 1000 will be set to 1000 and any value below -1000 will be set to -1000.
+
+The transfer function of instructions are simplified for generalization of interval analysis, therefore may not be fully accurate.
+In while loops during narrowing after widening, the widenened interval of the while end condition can spill over to while condition and while body, making the analysis less accurate than it should be.
 
 \subsection{Branch Comparison}
 
@@ -71,7 +75,10 @@ The following instructions are covered according to the requirement in the assig
    \item SRem
 \end{enumerate}
 
-The transfer function of instructions are simplified for generalization of interval analysis, therefore may not be fully accurate.
+\subsection {Structure}
+
+The structure of the algorithm follows the general guideline in the demo and absint example code, with more emphasis on intervals rather than LLVM instructions.
+The transfer functions of branch comparisons, instructions, and branch merging are defined in terms of intervals rather than instructions.
 
 \section{Submission Folder Structure}
 
@@ -90,28 +97,50 @@ The transfer function of instructions are simplified for generalization of inter
 After extracting the file, the following commands can be run in sequence:
 
 \begin{verbatim}
-      ./compile
-      ./llvm
-      ./task2
-      ./task3
-   \end{verbatim}
+   ./compile
+   ./llvm
+   ./run
+\end{verbatim}
 
 After compilation, to run against any other LLVM intermediate representation file, the following command can be used:
 
+For task 1:
 \begin{verbatim}
-      ./bin/assignment1 other-file.ll
-   \end{verbatim}
+   ./bin/assignment3-1 other-file.ll
+\end{verbatim}
+
+For task 2:
+\begin{verbatim}
+   ./bin/assignment3-2 other-file.ll
+\end{verbatim}
 
 To generate the graphs, the following command can be run:
 
 \begin{verbatim}
-      ./graph
-   \end{verbatim}
+   ./graph
+\end{verbatim}
 
 If all else fails, the compiled binary is also included in the assignment, and can be used with the following command which hopefully runs with or without LLVM libraries:
 
+For task 1:
 \begin{verbatim}
-      ./bin/assignment1/test.ll
-   \end{verbatim}
+   ./bin/assignment3-1 other-file.ll
+\end{verbatim}
+
+For task 2:
+\begin{verbatim}
+   ./bin/assignment3-2 other-file.ll
+\end{verbatim}
+
+\section {Misc}
+
+The implementation can be found at \url{https://github.com/hjw95/program-analysis} which will be available after the end of the course.
+I believe this module is good and important, however I find that the examples in the module is lacking concrete impelmentation that students can run and feel.
+
+I am keen to help with developing example codes if you are open to it, which can be continued in this github repository or somewhere more appropriate.
+Doing so will also benefit me as I get to further learn the details of program analysis on top of the assignments.
+
+If you are open to discussion on creating example analysis code, feel free to send email to my personal email address or comment in github.
+
 
 \end{document}
