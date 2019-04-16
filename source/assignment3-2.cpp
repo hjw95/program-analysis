@@ -219,19 +219,19 @@ Range narrow_sub(Range l, Range r)
     potentialValues.insert(l.right - r.left);
     potentialValues.insert(l.right - r.right);
 
-    if (l.left == -1000 || r.left == -1000)
+    if (l.left == -1000 || r.left == 1000)
     {
         potentialValues.insert(-1000);
     }
-    if (l.left == 1000 || r.left == 1000)
+    if (l.left == 1000 || r.left == -1000)
     {
         potentialValues.insert(1000);
     }
-    if (l.right == -1000 || r.right == -1000)
+    if (l.right == 1000 || r.right == -1000)
     {
         potentialValues.insert(1000);
     }
-    if (l.right == 1000 || r.right == 1000)
+    if (l.right == -1000 || r.right == 1000)
     {
         potentialValues.insert(-1000);
     }
@@ -1744,13 +1744,7 @@ void narrow_generate(Function *F)
             }
             ValueAnalysis predSet = narrow_pred_cond(narrowValueAnalysisMap[predecessor->getName()], predecessor, &BB);
             predUnion = narrow_combine(predUnion, predSet);
-
-            outs() << "Pred Set \n";
-            print(predSet);
         }
-
-        outs() << "Pred Union \n";
-        print(predUnion);
 
         ValueAnalysis OldBBAnalysis = narrowValueAnalysisMap[BB.getName()];
         ValueAnalysis BBAnalysis = narrow_generate(&BB, predUnion, OldBBAnalysis);
@@ -1847,7 +1841,7 @@ int main(int argc, char **argv)
 
     Function *F = init(&M);
 
-    print_steps = true;
+    print_steps = false;
 
     widen(F);
     narrowValueAnalysisMap = map<string, ValueAnalysis>(wideValueAnalysisMap);
