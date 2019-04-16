@@ -147,8 +147,10 @@ typedef std::map<string, Range> ValueAnalysis;
 // Basic block to value analysis
 // Widening
 map<string, ValueAnalysis> wideValueAnalysisMap;
+map<string, bool> wideImpossibleBlock;
 // Narrowing
 map<string, ValueAnalysis> narrowValueAnalysisMap;
+map<string, bool> narrowImpossibleBlock;
 
 int narrowing_count = 0;
 int widening_count = 0;
@@ -309,17 +311,47 @@ Range narrow_rem(Range l, Range r)
 
 Range narrow_combine(Range l, Range r)
 {
-    set<int> potentialValues;
+    set<int> leftValues, rightValues;
 
-    potentialValues.insert(l.left);
-    potentialValues.insert(l.right);
-    potentialValues.insert(r.left);
-    potentialValues.insert(r.right);
-
-    int newL = *potentialValues.begin();
-    int newR = *potentialValues.rbegin();
-
-    return Range(newL, newR);
+    if (l.left < r.left)
+    {
+        if (l.right < r.left)
+        {
+            // broken analysis, take the widest range
+            return Range(l.left, r.right);
+        }
+        else
+        {
+            // intersect
+            if (l.right < r.right)
+            {
+                return Range(r.left, l.right);
+            }
+            else
+            {
+                return Range(r.left, r.right);
+            }
+        }
+    }
+    else
+    {
+        if (r.right < l.left)
+        {
+            // broken analysis, take the widest range
+            return Range(l.left, r.right);
+        }
+        else
+        {
+            if (r.right < l.right)
+            {
+                return Range(l.left, r.right);
+            }
+            else
+            {
+                return Range(l.left, l.right);
+            }
+        }
+    }
 }
 
 // Retrieves the range for l in case of true = l gt r
@@ -919,6 +951,18 @@ void print(const Value *bb, string label)
 
 #pragma region Helper
 
+bool impossible_path(const ValueAnalysis valueAnalysis)
+{
+    for (auto &row : valueAnalysis)
+    {
+        if (row.second.impossibleRange)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 string get_load_store_label(Value &v)
 {
     Instruction &I = cast<Instruction>(v);
@@ -1272,12 +1316,21 @@ void widen_generate(Function *F)
 {
     for (auto &BB : *F)
     {
+        if (wideImpossibleBlock[BB.getName()])
+        {
+            continue;
+        }
         ValueAnalysis predUnion;
         // Load the current stored analysis for all predecessor nodes
         for (auto it = pred_begin(&BB), et = pred_end(&BB); it != et; ++it)
         {
             BasicBlock *predecessor = *it;
             ValueAnalysis predSet = widen_pred_cond(wideValueAnalysisMap[predecessor->getName()], predecessor, &BB);
+            if (impossible_path(predSet))
+            {
+                wideImpossibleBlock[predecessor->getName()] = true;
+                continue;
+            }
             predUnion = widen_combine(predUnion, predSet);
         }
 
@@ -1648,12 +1701,21 @@ void narrow_generate(Function *F)
 {
     for (auto &BB : *F)
     {
+        if (narrowImpossibleBlock[BB.getName()])
+        {
+            continue;
+        }
         ValueAnalysis predUnion;
         // Load the current stored analysis for all predecessor nodes
         for (auto it = pred_begin(&BB), et = pred_end(&BB); it != et; ++it)
         {
             BasicBlock *predecessor = *it;
             ValueAnalysis predSet = narrow_pred_cond(narrowValueAnalysisMap[predecessor->getName()], predecessor, &BB);
+            if (impossible_path(predSet))
+            {
+                narrowImpossibleBlock[predecessor->getName()] = true;
+                continue;
+            }
             predUnion = narrow_combine(predUnion, predSet);
         }
 
@@ -1742,6 +1804,6 @@ int main(int argc, char **argv)
     narrow(F);
     outs() << "\n====================================\n\n";
     print(narrowValueAnalysisMap);
-    
+
     return 0;
 }
