@@ -185,8 +185,32 @@ Range narrow_str(Range r)
 
 Range narrow_add(Range l, Range r)
 {
-    int newL = l.left + r.left;
-    int newR = l.right + r.right;
+    set<int> potentialValues;
+
+    potentialValues.insert(l.left + r.left);
+    potentialValues.insert(l.left + r.right);
+    potentialValues.insert(l.right + r.left);
+    potentialValues.insert(l.right + r.right);
+
+    if (l.left == -1000 || r.left == -1000)
+    {
+        potentialValues.insert(-1000);
+    }
+    if (l.left == 1000 || r.left == 1000)
+    {
+        potentialValues.insert(1000);
+    }
+    if (l.right == -1000 || r.right == -1000)
+    {
+        potentialValues.insert(-1000);
+    }
+    if (l.right == 1000 || r.right == 1000)
+    {
+        potentialValues.insert(1000);
+    }
+
+    int newL = *potentialValues.begin();
+    int newR = *potentialValues.rbegin();
 
     return Range(newL, newR);
 }
@@ -199,6 +223,23 @@ Range narrow_sub(Range l, Range r)
     potentialValues.insert(l.left - r.right);
     potentialValues.insert(l.right - r.left);
     potentialValues.insert(l.right - r.right);
+
+    if (l.left == -1000 || r.left == 1000)
+    {
+        potentialValues.insert(-1000);
+    }
+    if (l.left == 1000 || r.left == -1000)
+    {
+        potentialValues.insert(1000);
+    }
+    if (l.right == 1000 || r.right == -1000)
+    {
+        potentialValues.insert(1000);
+    }
+    if (l.right == -1000 || r.right == 1000)
+    {
+        potentialValues.insert(-1000);
+    }
 
     int newL = *potentialValues.begin();
     int newR = *potentialValues.rbegin();
@@ -316,47 +357,17 @@ Range narrow_rem(Range l, Range r)
 
 Range narrow_combine(Range l, Range r)
 {
-    set<int> leftValues, rightValues;
+    set<int> potentialValues;
 
-    if (l.left < r.left)
-    {
-        if (l.right < r.left)
-        {
-            // broken analysis, take the widest range
-            return Range(l.left, r.right);
-        }
-        else
-        {
-            // intersect
-            if (l.right < r.right)
-            {
-                return Range(r.left, l.right);
-            }
-            else
-            {
-                return Range(r.left, r.right);
-            }
-        }
-    }
-    else
-    {
-        if (r.right < l.left)
-        {
-            // broken analysis, take the widest range
-            return Range(l.left, r.right);
-        }
-        else
-        {
-            if (r.right < l.right)
-            {
-                return Range(l.left, r.right);
-            }
-            else
-            {
-                return Range(l.left, l.right);
-            }
-        }
-    }
+    potentialValues.insert(l.left);
+    potentialValues.insert(l.right);
+    potentialValues.insert(r.left);
+    potentialValues.insert(r.right);
+
+    int newL = *potentialValues.begin();
+    int newR = *potentialValues.rbegin();
+
+    return Range(newL, newR);
 }
 
 // Retrieves the range for l in case of true = l gt r
@@ -1348,6 +1359,7 @@ void widen_generate(Function *F)
     {
         if (wideImpossibleBlock[BB.getName()])
         {
+            wideValueAnalysisMap.erase(BB.getName());
             continue;
         }
         ValueAnalysis predUnion;
@@ -1355,12 +1367,11 @@ void widen_generate(Function *F)
         for (auto it = pred_begin(&BB), et = pred_end(&BB); it != et; ++it)
         {
             BasicBlock *predecessor = *it;
-            ValueAnalysis predSet = widen_pred_cond(wideValueAnalysisMap[predecessor->getName()], predecessor, &BB);
-            if (impossible_path(predSet))
+            if (wideImpossibleBlock[predecessor->getName()])
             {
-                wideImpossibleBlock[predecessor->getName()] = true;
                 continue;
             }
+            ValueAnalysis predSet = widen_pred_cond(wideValueAnalysisMap[predecessor->getName()], predecessor, &BB);
             predUnion = widen_combine(predUnion, predSet);
         }
 
@@ -1369,6 +1380,22 @@ void widen_generate(Function *F)
         if (OldBBAnalysis != BBAnalysis)
         {
             wideValueAnalysisMap[BB.getName()] = BBAnalysis;
+        }
+    }
+}
+
+void widen_check_block(Function *F)
+{
+    for (auto &BB : *F)
+    {
+        for (auto it = pred_begin(&BB), et = pred_end(&BB); it != et; ++it)
+        {
+            BasicBlock *predecessor = *it;
+            ValueAnalysis predSet = widen_pred_cond(wideValueAnalysisMap[predecessor->getName()], predecessor, &BB);
+            if (impossible_path(predSet))
+            {
+                wideImpossibleBlock[BB.getName()] = true;
+            }
         }
     }
 }
@@ -1414,6 +1441,7 @@ void widen(Function *F)
         oldAnalysisMap.clear();
         oldAnalysisMap.insert(wideValueAnalysisMap.begin(), wideValueAnalysisMap.end());
 
+        widen_check_block(F);
         widen_generate(F);
 
         if (print_steps)
@@ -1644,7 +1672,6 @@ ValueAnalysis narrow_generate(BasicBlock *BB, ValueAnalysis predecessorAnalysis,
         {
             if (previousRoundAnalysis.find(label(&I)) != previousRoundAnalysis.end())
             {
-
                 result[label(&I)] = previousRoundAnalysis[label(&I)];
                 temp[label(&I)] = previousRoundAnalysis[label(&I)];
             }
@@ -1733,6 +1760,7 @@ void narrow_generate(Function *F)
     {
         if (narrowImpossibleBlock[BB.getName()])
         {
+            narrowValueAnalysisMap.erase(BB.getName());
             continue;
         }
         ValueAnalysis predUnion;
@@ -1740,12 +1768,11 @@ void narrow_generate(Function *F)
         for (auto it = pred_begin(&BB), et = pred_end(&BB); it != et; ++it)
         {
             BasicBlock *predecessor = *it;
-            ValueAnalysis predSet = narrow_pred_cond(narrowValueAnalysisMap[predecessor->getName()], predecessor, &BB);
-            if (impossible_path(predSet))
+            if (narrowImpossibleBlock[predecessor->getName()])
             {
-                narrowImpossibleBlock[predecessor->getName()] = true;
                 continue;
             }
+            ValueAnalysis predSet = narrow_pred_cond(narrowValueAnalysisMap[predecessor->getName()], predecessor, &BB);
             predUnion = narrow_combine(predUnion, predSet);
         }
 
@@ -1754,6 +1781,22 @@ void narrow_generate(Function *F)
         if (OldBBAnalysis != BBAnalysis)
         {
             narrowValueAnalysisMap[BB.getName()] = BBAnalysis;
+        }
+    }
+}
+
+void narrow_check_block(Function *F)
+{
+    for (auto &BB : *F)
+    {
+        for (auto it = pred_begin(&BB), et = pred_end(&BB); it != et; ++it)
+        {
+            BasicBlock *predecessor = *it;
+            ValueAnalysis predSet = narrow_pred_cond(narrowValueAnalysisMap[predecessor->getName()], predecessor, &BB);
+            if (impossible_path(predSet))
+            {
+                narrowImpossibleBlock[BB.getName()] = true;
+            }
         }
     }
 }
@@ -1799,6 +1842,7 @@ void narrow(Function *F)
         oldAnalysisMap.clear();
         oldAnalysisMap.insert(narrowValueAnalysisMap.begin(), narrowValueAnalysisMap.end());
 
+        narrow_check_block(F);
         narrow_generate(F);
 
         if (print_steps)
