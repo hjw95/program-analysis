@@ -311,47 +311,17 @@ Range narrow_rem(Range l, Range r)
 
 Range narrow_combine(Range l, Range r)
 {
-    set<int> leftValues, rightValues;
+    set<int> potentialValues;
 
-    if (l.left < r.left)
-    {
-        if (l.right < r.left)
-        {
-            // broken analysis, take the widest range
-            return Range(l.left, r.right);
-        }
-        else
-        {
-            // intersect
-            if (l.right < r.right)
-            {
-                return Range(r.left, l.right);
-            }
-            else
-            {
-                return Range(r.left, r.right);
-            }
-        }
-    }
-    else
-    {
-        if (r.right < l.left)
-        {
-            // broken analysis, take the widest range
-            return Range(l.left, r.right);
-        }
-        else
-        {
-            if (r.right < l.right)
-            {
-                return Range(l.left, r.right);
-            }
-            else
-            {
-                return Range(l.left, l.right);
-            }
-        }
-    }
+    potentialValues.insert(l.left);
+    potentialValues.insert(l.right);
+    potentialValues.insert(r.left);
+    potentialValues.insert(r.right);
+
+    int newL = *potentialValues.begin();
+    int newR = *potentialValues.rbegin();
+
+    return Range(newL, newR);
 }
 
 // Retrieves the range for l in case of true = l gt r
@@ -1316,21 +1286,16 @@ void widen_generate(Function *F)
 {
     for (auto &BB : *F)
     {
-        if (wideImpossibleBlock[BB.getName()])
-        {
-            continue;
-        }
         ValueAnalysis predUnion;
         // Load the current stored analysis for all predecessor nodes
         for (auto it = pred_begin(&BB), et = pred_end(&BB); it != et; ++it)
         {
             BasicBlock *predecessor = *it;
-            ValueAnalysis predSet = widen_pred_cond(wideValueAnalysisMap[predecessor->getName()], predecessor, &BB);
-            if (impossible_path(predSet))
+            if (wideImpossibleBlock[predecessor->getName()])
             {
-                wideImpossibleBlock[predecessor->getName()] = true;
                 continue;
             }
+            ValueAnalysis predSet = widen_pred_cond(wideValueAnalysisMap[predecessor->getName()], predecessor, &BB);
             predUnion = widen_combine(predUnion, predSet);
         }
 
@@ -1339,6 +1304,22 @@ void widen_generate(Function *F)
         if (OldBBAnalysis != BBAnalysis)
         {
             wideValueAnalysisMap[BB.getName()] = BBAnalysis;
+        }
+    }
+}
+
+void widen_check_block(Function *F)
+{
+    for (auto &BB : *F)
+    {
+        for (auto it = pred_begin(&BB), et = pred_end(&BB); it != et; ++it)
+        {
+            BasicBlock *predecessor = *it;
+            ValueAnalysis predSet = widen_pred_cond(wideValueAnalysisMap[predecessor->getName()], predecessor, &BB);
+            if (impossible_path(predSet))
+            {
+                wideImpossibleBlock[BB.getName()] = true;
+            }
         }
     }
 }
@@ -1384,6 +1365,7 @@ void widen(Function *F)
         oldAnalysisMap.clear();
         oldAnalysisMap.insert(wideValueAnalysisMap.begin(), wideValueAnalysisMap.end());
 
+        widen_check_block(F);
         widen_generate(F);
 
         if (print_steps)
@@ -1701,21 +1683,16 @@ void narrow_generate(Function *F)
 {
     for (auto &BB : *F)
     {
-        if (narrowImpossibleBlock[BB.getName()])
-        {
-            continue;
-        }
         ValueAnalysis predUnion;
         // Load the current stored analysis for all predecessor nodes
         for (auto it = pred_begin(&BB), et = pred_end(&BB); it != et; ++it)
         {
             BasicBlock *predecessor = *it;
-            ValueAnalysis predSet = narrow_pred_cond(narrowValueAnalysisMap[predecessor->getName()], predecessor, &BB);
-            if (impossible_path(predSet))
+            if (narrowImpossibleBlock[predecessor->getName()])
             {
-                narrowImpossibleBlock[predecessor->getName()] = true;
                 continue;
             }
+            ValueAnalysis predSet = narrow_pred_cond(narrowValueAnalysisMap[predecessor->getName()], predecessor, &BB);
             predUnion = narrow_combine(predUnion, predSet);
         }
 
@@ -1724,6 +1701,22 @@ void narrow_generate(Function *F)
         if (OldBBAnalysis != BBAnalysis)
         {
             narrowValueAnalysisMap[BB.getName()] = BBAnalysis;
+        }
+    }
+}
+
+void narrow_check_block(Function *F)
+{
+    for (auto &BB : *F)
+    {
+        for (auto it = pred_begin(&BB), et = pred_end(&BB); it != et; ++it)
+        {
+            BasicBlock *predecessor = *it;
+            ValueAnalysis predSet = narrow_pred_cond(narrowValueAnalysisMap[predecessor->getName()], predecessor, &BB);
+            if (impossible_path(predSet))
+            {
+                narrowImpossibleBlock[BB.getName()] = true;
+            }
         }
     }
 }
@@ -1769,6 +1762,7 @@ void narrow(Function *F)
         oldAnalysisMap.clear();
         oldAnalysisMap.insert(narrowValueAnalysisMap.begin(), narrowValueAnalysisMap.end());
 
+        narrow_check_block(F);
         narrow_generate(F);
 
         if (print_steps)
