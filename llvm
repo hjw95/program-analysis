@@ -16,3 +16,4 @@ clang-7 -emit-llvm -fno-discard-value-names -S -o llvms/assignment2-example4.ll 
 clang-7 -emit-llvm -fno-discard-value-names -S -o llvms/assignment3-example1.ll target/assignment3-example1.c
 clang-7 -emit-llvm -fno-discard-value-names -S -o llvms/assignment3-example2.ll target/assignment3-example2.c
 clang-7 -emit-llvm -fno-discard-value-names -S -o llvms/assignment3-example3.ll target/assignment3-example3.c
+clang-7 -emit-llvm -fno-discard-value-names -S -o llvms/assignment3-example4.ll target/assignment3-example4.c

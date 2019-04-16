@@ -39,5 +39,8 @@ mv cfg.main.dot graphs/assignment3-example2.dot
 opt-7 -dot-cfg llvms/assignment3-example3.ll
 mv cfg.main.dot graphs/assignment3-example3.dot
 
+opt-7 -dot-cfg llvms/assignment3-example4.ll
+mv cfg.main.dot graphs/assignment3-example4.dot
+
 cd graphs
 ./allfigs2pdf

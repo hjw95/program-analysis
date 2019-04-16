@@ -1,27 +1,14 @@
 int main()
 {
-    int a = -2, b = 5, x = 0, y;
-    int N;
-    int i = 0;
-    while (i++ < N)
+    int x;
+    int a = 10;
+    int b = 5;
+    if (a > 0)
     {
-        if (a > 0)
-        {
-            x = x + 7;
-            y = 5;
-        }
-        else
-        {
-            x = x - 2;
-            y = 1;
-        }
-        if (b > 0)
-        {
-            a = 6;
-        }
-        else
-        {
-            a = -5;
-        }
+        x = 3 + b;
+    }
+    else
+    {
+        x = 3 - b;
     }
 }

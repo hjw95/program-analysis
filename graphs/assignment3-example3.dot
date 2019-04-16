@@ -1,26 +1,12 @@
 digraph "CFG for 'main' function" {
 	label="CFG for 'main' function";
 
-	Node0x560ec53d7bc0 [shape=record,label="{entry:\l  %retval = alloca i32, align 4\l  %a = alloca i32, align 4\l  %b = alloca i32, align 4\l  %x = alloca i32, align 4\l  %y = alloca i32, align 4\l  %N = alloca i32, align 4\l  %i = alloca i32, align 4\l  store i32 0, i32* %retval, align 4\l  store i32 -2, i32* %a, align 4\l  store i32 5, i32* %b, align 4\l  store i32 0, i32* %x, align 4\l  store i32 0, i32* %i, align 4\l  br label %while.cond\l}"];
-	Node0x560ec53d7bc0 -> Node0x560ec53d89c0;
-	Node0x560ec53d89c0 [shape=record,label="{while.cond:                                       \l  %0 = load i32, i32* %i, align 4\l  %inc = add nsw i32 %0, 1\l  store i32 %inc, i32* %i, align 4\l  %1 = load i32, i32* %N, align 4\l  %cmp = icmp slt i32 %0, %1\l  br i1 %cmp, label %while.body, label %while.end\l|{<s0>T|<s1>F}}"];
-	Node0x560ec53d89c0:s0 -> Node0x560ec53d8d20;
-	Node0x560ec53d89c0:s1 -> Node0x560ec53d8e00;
-	Node0x560ec53d8d20 [shape=record,label="{while.body:                                       \l  %2 = load i32, i32* %a, align 4\l  %cmp1 = icmp sgt i32 %2, 0\l  br i1 %cmp1, label %if.then, label %if.else\l|{<s0>T|<s1>F}}"];
-	Node0x560ec53d8d20:s0 -> Node0x560ec53d9120;
-	Node0x560ec53d8d20:s1 -> Node0x560ec53d91f0;
-	Node0x560ec53d9120 [shape=record,label="{if.then:                                          \l  %3 = load i32, i32* %x, align 4\l  %add = add nsw i32 %3, 7\l  store i32 %add, i32* %x, align 4\l  store i32 5, i32* %y, align 4\l  br label %if.end\l}"];
-	Node0x560ec53d9120 -> Node0x560ec53d9480;
-	Node0x560ec53d91f0 [shape=record,label="{if.else:                                          \l  %4 = load i32, i32* %x, align 4\l  %sub = sub nsw i32 %4, 2\l  store i32 %sub, i32* %x, align 4\l  store i32 1, i32* %y, align 4\l  br label %if.end\l}"];
-	Node0x560ec53d91f0 -> Node0x560ec53d9480;
-	Node0x560ec53d9480 [shape=record,label="{if.end:                                           \l  %5 = load i32, i32* %b, align 4\l  %cmp2 = icmp sgt i32 %5, 0\l  br i1 %cmp2, label %if.then3, label %if.else4\l|{<s0>T|<s1>F}}"];
-	Node0x560ec53d9480:s0 -> Node0x560ec53d9880;
-	Node0x560ec53d9480:s1 -> Node0x560ec53d9960;
-	Node0x560ec53d9880 [shape=record,label="{if.then3:                                         \l  store i32 6, i32* %a, align 4\l  br label %if.end5\l}"];
-	Node0x560ec53d9880 -> Node0x560ec53d9af0;
-	Node0x560ec53d9960 [shape=record,label="{if.else4:                                         \l  store i32 -5, i32* %a, align 4\l  br label %if.end5\l}"];
-	Node0x560ec53d9960 -> Node0x560ec53d9af0;
-	Node0x560ec53d9af0 [shape=record,label="{if.end5:                                          \l  br label %while.cond\l}"];
-	Node0x560ec53d9af0 -> Node0x560ec53d89c0;
-	Node0x560ec53d8e00 [shape=record,label="{while.end:                                        \l  %6 = load i32, i32* %retval, align 4\l  ret i32 %6\l}"];
+	Node0x555aa5b5f750 [shape=record,label="{entry:\l  %retval = alloca i32, align 4\l  %x = alloca i32, align 4\l  %a = alloca i32, align 4\l  %b = alloca i32, align 4\l  store i32 0, i32* %retval, align 4\l  store i32 10, i32* %a, align 4\l  store i32 5, i32* %b, align 4\l  %0 = load i32, i32* %a, align 4\l  %cmp = icmp sgt i32 %0, 0\l  br i1 %cmp, label %if.then, label %if.else\l|{<s0>T|<s1>F}}"];
+	Node0x555aa5b5f750:s0 -> Node0x555aa5b603e0;
+	Node0x555aa5b5f750:s1 -> Node0x555aa5b604b0;
+	Node0x555aa5b603e0 [shape=record,label="{if.then:                                          \l  %1 = load i32, i32* %b, align 4\l  %add = add nsw i32 3, %1\l  store i32 %add, i32* %x, align 4\l  br label %if.end\l}"];
+	Node0x555aa5b603e0 -> Node0x555aa5b606c0;
+	Node0x555aa5b604b0 [shape=record,label="{if.else:                                          \l  %2 = load i32, i32* %b, align 4\l  %sub = sub nsw i32 3, %2\l  store i32 %sub, i32* %x, align 4\l  br label %if.end\l}"];
+	Node0x555aa5b604b0 -> Node0x555aa5b606c0;
+	Node0x555aa5b606c0 [shape=record,label="{if.end:                                           \l  %3 = load i32, i32* %retval, align 4\l  ret i32 %3\l}"];
 }
