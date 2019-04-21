@@ -1416,7 +1416,7 @@ void widen(Function *F)
 
         if (print_steps)
         {
-            outs() << "Round:" << widening_count++ << "\n";
+            outs() << "Widening Round:" << widening_count++ << "\n";
             print(wideValueAnalysisMap);
             llvm::errs() << "\n";
         }
@@ -1817,7 +1817,7 @@ void narrow(Function *F)
 
         if (print_steps)
         {
-            outs() << "Round:" << narrowing_count++ << "\n";
+            outs() << "Narrowing Round:" << narrowing_count++ << "\n";
             print(narrowValueAnalysisMap);
             llvm::errs() << "\n";
         }
@@ -1847,7 +1847,9 @@ int main(int argc, char **argv)
     narrowValueAnalysisMap = map<string, ValueAnalysis>(wideValueAnalysisMap);
     narrow(F);
     outs() << "\n====================================\n\n";
+    outs() << "Result: \n";
     print(narrowValueAnalysisMap);
+    outs() << "\n====================================\n\n";
 
     return 0;
 }
