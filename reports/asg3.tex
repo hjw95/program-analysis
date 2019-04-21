@@ -40,10 +40,15 @@ The ability of getting the maximum difference between two variables is a side ef
 
 The analysis is divided into two steps, widening first and then narrowing.
 In the implementation and analysis of result, any value that is -1000 represents negative infinity and any value that is 1000 represents positive infinity.
-All widening and narrowing handle of variable interval (Range in code) will check against this sanity, that is any value above 1000 will be set to 1000 and any value below -1000 will be set to -1000.
+All widening and narrowing handle of variable interval (Range struct in code) will check against this sanity, that is any value above 1000 will be set to 1000 and any value below -1000 will be set to -1000.
 
 The transfer function of instructions are simplified for generalization of interval analysis, therefore may not be fully accurate.
-In while loops during narrowing after widening, the widenened interval of the while end condition can spill over to while condition and while body, making the analysis less accurate than it should be.
+Each instruction type has its implementation for narrowing and widening.
+Widening implementation is a simple widening of narrowing instruction transfer functions.
+
+In loops during narrowing after widening, the widenened interval of the while end condition can spill over to while condition and while body, making the analysis less accurate than it should be.
+As a result, analysis is not as accurate as what the assigment expects.
+The implementation to cater for such case is neither general nor trivial, requiring hard coding of block names and first iteration check, therefore is not included in the implementation.
 
 \subsection{Branch Comparison}
 
@@ -102,7 +107,7 @@ After extracting the file, the following commands can be run in sequence:
    ./run
 \end{verbatim}
 
-After compilation, to run against any other LLVM intermediate representation file, the following command can be used:
+Run command will run against all four examples in the assignment sheet. After compilation, to run against any other LLVM intermediate representation file, the following command can be used:
 
 For task 1:
 \begin{verbatim}
@@ -135,12 +140,11 @@ For task 2:
 \section {Misc}
 
 The implementation can be found at \url{https://github.com/hjw95/program-analysis} which will be available after the end of the course.
-I believe this module is good and important, however I find that the examples in the module is lacking concrete impelmentation that students can run and feel.
+I believe this module is good and important, however I find that the examples in the module is lacking concrete implementation that students can run and see what exactly is happening.
 
 I am keen to help with developing example codes if you are open to it, which can be continued in this github repository or somewhere more appropriate.
 Doing so will also benefit me as I get to further learn the details of program analysis on top of the assignments.
 
 If you are open to discussion on creating example analysis code, feel free to send email to my personal email address or comment in github.
-
 
 \end{document}
